@@ -52,6 +52,13 @@ def cleanup_old_videos():
                     os.remove(file_path)
                 except OSError:
                     pass
+            if video.get('subtitle_filename'):
+                sub_path = os.path.join(DOWNLOAD_DIR, video['subtitle_filename'])
+                if os.path.exists(sub_path):
+                    try:
+                        os.remove(sub_path)
+                    except OSError:
+                        pass
         else:
             remaining_videos.append(video)
 
@@ -101,11 +108,37 @@ def get_formats():
                 {'format_id': 'bestaudio/best', 'resolution': 'Audio Only (MP3/M4A)'}
             ]
 
+            # Parse subtitle options (manual and automatic)
+            subtitles = [{'code': 'none', 'name': 'No Subtitles'}]
+            raw_subs = info.get('subtitles') or {}
+            for lang_code, sub_list in raw_subs.items():
+                lang_name = lang_code
+                if sub_list and isinstance(sub_list, list) and len(sub_list) > 0:
+                    lang_name = sub_list[0].get('name') or lang_code
+                subtitles.append({
+                    'code': lang_code,
+                    'name': f"{lang_name} ({lang_code})",
+                    'is_auto': False
+                })
+
+            raw_auto = info.get('automatic_captions') or {}
+            for lang_code, sub_list in raw_auto.items():
+                if lang_code not in raw_subs:
+                    lang_name = lang_code
+                    if sub_list and isinstance(sub_list, list) and len(sub_list) > 0:
+                        lang_name = sub_list[0].get('name') or lang_code
+                    subtitles.append({
+                        'code': f"auto:{lang_code}",
+                        'name': f"{lang_name} ({lang_code}) [Auto-generated]",
+                        'is_auto': True
+                    })
+
             return jsonify({
                 'title': info.get('title', 'Video'),
                 'thumbnail': info.get('thumbnail', ''),
                 'duration': info.get('duration_string', ''),
-                'formats': options
+                'formats': options,
+                'subtitles': subtitles
             })
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -116,6 +149,9 @@ def start_download():
     data = request.json
     url = data.get('url')
     format_id = data.get('format_id')
+    quality_label = data.get('quality_label', '')
+    subtitle_code = data.get('subtitle_code', 'none')
+    subtitle_label = data.get('subtitle_label')
     
     task_id = str(int(time.time() * 1000))
     progress_data[task_id] = {
@@ -125,7 +161,10 @@ def start_download():
         'eta': 'Unknown'
     }
 
-    thread = threading.Thread(target=run_yt_dlp, args=(task_id, url, format_id))
+    thread = threading.Thread(
+        target=run_yt_dlp,
+        args=(task_id, url, format_id, quality_label, subtitle_code, subtitle_label)
+    )
     thread.start()
 
     return jsonify({'task_id': task_id})
@@ -139,7 +178,7 @@ def clean_ansi(text):
     ansi_escape = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
     return ansi_escape.sub('', str(text)).strip()
 
-def run_yt_dlp(task_id, url, format_id):
+def run_yt_dlp(task_id, url, format_id, quality_label='', subtitle_code='none', subtitle_label=None):
     def progress_hook(d):
         if d['status'] == 'downloading':
             # Extract raw percentages for reliable progress bar filling
@@ -171,6 +210,14 @@ def run_yt_dlp(task_id, url, format_id):
         'quiet': True
     }
 
+    if subtitle_code and subtitle_code != 'none':
+        is_auto = subtitle_code.startswith('auto:')
+        clean_lang = subtitle_code.replace('auto:', '')
+        ydl_opts['writesubtitles'] = True
+        ydl_opts['writeautomaticsub'] = is_auto
+        ydl_opts['subtitleslangs'] = [clean_lang]
+        ydl_opts['subtitlesformat'] = 'srt/vtt/best'
+
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=True)
@@ -178,11 +225,42 @@ def run_yt_dlp(task_id, url, format_id):
             filename = os.path.basename(full_path)
             file_size = os.path.getsize(full_path) if os.path.exists(full_path) else 0
 
+            # Detect downloaded subtitle file
+            sub_filename = None
+            if info.get('requested_subtitles'):
+                for lang, sub_info in info['requested_subtitles'].items():
+                    if sub_info.get('filepath') and os.path.exists(sub_info['filepath']):
+                        sub_filename = os.path.basename(sub_info['filepath'])
+                        break
+
+            if not sub_filename and subtitle_code != 'none':
+                base_name = os.path.splitext(filename)[0]
+                for f in os.listdir(DOWNLOAD_DIR):
+                    if f.startswith(base_name) and (f.endswith('.srt') or f.endswith('.vtt')):
+                        sub_filename = f
+                        break
+
+            # Determine Quality Tag
+            if quality_label and quality_label != 'Best Available Quality':
+                quality_tag = quality_label
+            else:
+                if info.get('height'):
+                    quality_tag = f"{info.get('height')}p (Best)"
+                elif format_id == 'bestaudio/best':
+                    quality_tag = "Audio Only"
+                else:
+                    quality_tag = "Best Quality"
+
+            sub_tag = subtitle_label if sub_filename else None
+
             videos = load_db()
             video_record = {
                 'id': task_id,
                 'title': info.get('title', 'Downloaded Video'),
                 'filename': filename,
+                'subtitle_filename': sub_filename,
+                'quality': quality_tag,
+                'subtitle_lang': sub_tag,
                 'file_size': file_size,
                 'created_at': datetime.now().isoformat()
             }
@@ -214,10 +292,10 @@ def download_file(filename):
     return send_from_directory(DOWNLOAD_DIR, filename, as_attachment=True)
 
 
-# NEW: Manual Video Deletion Route
+# Manual Video Deletion Route
 @app.route('/delete-video/<video_id>', methods=['POST'])
 def delete_video(video_id):
-    """Deletes a video file from disk and removes its metadata from the JSON store."""
+    """Deletes a video file (and associated subtitle) from disk and removes metadata from JSON store."""
     videos = load_db()
     video_to_delete = None
     remaining_videos = []
@@ -234,7 +312,15 @@ def delete_video(video_id):
             try:
                 os.remove(file_path)
             except OSError as e:
-                return jsonify({'error': f"Failed to delete file from disk: {str(e)}"}), 500
+                return jsonify({'error': f"Failed to delete video file from disk: {str(e)}"}), 500
+
+        if video_to_delete.get('subtitle_filename'):
+            sub_path = os.path.join(DOWNLOAD_DIR, video_to_delete['subtitle_filename'])
+            if os.path.exists(sub_path):
+                try:
+                    os.remove(sub_path)
+                except OSError:
+                    pass
 
         save_db(remaining_videos)
         return jsonify({'success': True, 'message': 'Video deleted successfully'})

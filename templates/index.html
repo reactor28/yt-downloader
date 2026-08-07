@@ -4,64 +4,572 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Server Video Downloader</title>
+    <!-- Google Fonts: Roboto & Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; max-width: 800px; margin: 40px auto; padding: 0 20px; background: #f9f9f9; color: #333; }
-        .card { background: white; padding: 24px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin-bottom: 24px; }
-        .form-group { display: flex; gap: 10px; margin-bottom: 15px; }
-        input[type="text"], select { flex: 1; padding: 12px; border: 1px solid #ccc; border-radius: 4px; font-size: 15px; }
-        button { padding: 12px 20px; background: #e50914; color: white; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; }
-        button:hover { background: #b80710; }
-        button:disabled { background: #ccc; cursor: not-allowed; }
-        
-        /* Video Options Preview */
-        #options-step { display: none; margin-top: 15px; padding-top: 15px; border-top: 1px solid #eee; }
-        .video-meta { display: flex; gap: 15px; align-items: center; margin-bottom: 15px; }
-        .video-meta img { width: 120px; border-radius: 4px; }
-        
-        /* Progress Bar Styling */
-        #progress-box { display: none; margin-top: 20px; }
-        .progress-bar-bg { width: 100%; background-color: #eee; border-radius: 8px; overflow: hidden; height: 20px; margin-bottom: 8px; }
-        .progress-bar-fill { width: 0%; height: 100%; background-color: #28a745; transition: width 0.3s ease; }
-        .progress-stats { display: flex; justify-content: space-between; font-size: 14px; color: #666; }
+        :root {
+            --bg-color: #0f0f0f;
+            --surface-color: #1f1f1f;
+            --surface-hover: #282828;
+            --border-color: #303030;
+            --primary-red: #ff0000;
+            --primary-red-hover: #cc0000;
+            --accent-blue: #3ea6ff;
+            --danger-red: #f87171;
+            --text-primary: #f1f1f1;
+            --text-secondary: #aaaaaa;
+            --text-muted: #717171;
+            --input-bg: #121212;
+            --radius-lg: 16px;
+            --radius-md: 10px;
+            --radius-sm: 6px;
+        }
 
-        /* Video List Actions */
-        .video-item { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #eee; padding: 12px 0; }
-        .video-item:last-child { border-bottom: none; }
-        .action-btns { display: flex; gap: 8px; align-items: center; }
-        .download-btn { padding: 6px 14px; background: #007bff; color: white; text-decoration: none; border-radius: 4px; font-size: 14px; }
-        .download-btn:hover { background: #0056b3; }
-        .delete-btn { padding: 6px 14px; background: #dc3545; color: white; border: none; border-radius: 4px; font-size: 14px; cursor: pointer; }
-        .delete-btn:hover { background: #bd2130; }
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
 
-        .alert { padding: 10px; border-radius: 4px; color: #721c24; background-color: #f8d7da; margin-bottom: 15px; display: none; }
+        body {
+            font-family: 'Roboto', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            max-width: 860px;
+            margin: 0 auto;
+            padding: 40px 20px;
+            line-height: 1.5;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* App Header */
+        .app-header {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            margin-bottom: 28px;
+        }
+
+        .yt-logo-icon {
+            width: 44px;
+            height: 30px;
+            background: var(--primary-red);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 14px rgba(255, 0, 0, 0.4);
+        }
+
+        .yt-logo-icon svg {
+            fill: #ffffff;
+            width: 18px;
+            height: 18px;
+            margin-left: 2px;
+        }
+
+        .app-header h1 {
+            font-size: 24px;
+            font-weight: 700;
+            letter-spacing: -0.4px;
+            color: #ffffff;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .app-header h1 span {
+            font-size: 12px;
+            font-weight: 500;
+            background: rgba(255, 255, 255, 0.08);
+            color: var(--text-secondary);
+            padding: 3px 10px;
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* Card Container */
+        .card {
+            background-color: var(--surface-color);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            padding: 28px;
+            margin-bottom: 28px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+
+        .card h2, .card h3 {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .card-subtitle {
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+
+        /* Form Group */
+        .form-group {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 0;
+            flex-wrap: wrap;
+        }
+
+        .input-wrapper {
+            position: relative;
+            flex: 1;
+            min-width: 280px;
+        }
+
+        .input-icon {
+            position: absolute;
+            left: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-muted);
+            pointer-events: none;
+            display: flex;
+            align-items: center;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 14px 14px 14px 44px;
+            background-color: var(--input-bg);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            color: var(--text-primary);
+            font-size: 15px;
+            font-family: inherit;
+            outline: none;
+            transition: all 0.2s ease;
+        }
+
+        input[type="text"]:focus {
+            border-color: var(--accent-blue);
+            box-shadow: 0 0 0 2px rgba(62, 166, 255, 0.2);
+        }
+
+        select {
+            width: 100%;
+            padding: 14px;
+            background-color: var(--input-bg);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            color: var(--text-primary);
+            font-size: 15px;
+            font-family: inherit;
+            outline: none;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23aaaaaa' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 14px center;
+            padding-right: 40px;
+        }
+
+        select:focus {
+            border-color: var(--accent-blue);
+        }
+
+        select:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        button {
+            padding: 14px 24px;
+            background-color: var(--primary-red);
+            color: #ffffff;
+            border: none;
+            border-radius: var(--radius-md);
+            font-weight: 600;
+            font-size: 14px;
+            font-family: inherit;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            white-space: nowrap;
+        }
+
+        button:hover {
+            background-color: var(--primary-red-hover);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 14px rgba(255, 0, 0, 0.35);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button:disabled {
+            background-color: #383838;
+            color: var(--text-muted);
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        /* Options Step */
+        #options-step {
+            display: none;
+            margin-top: 24px;
+            padding-top: 24px;
+            border-top: 1px solid var(--border-color);
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .video-meta {
+            display: flex;
+            gap: 18px;
+            align-items: center;
+            margin-bottom: 20px;
+            background: var(--input-bg);
+            padding: 16px;
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border-color);
+        }
+
+        .video-meta img {
+            width: 140px;
+            aspect-ratio: 16/9;
+            object-fit: cover;
+            border-radius: var(--radius-sm);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);
+        }
+
+        .meta-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .meta-info strong {
+            display: block;
+            font-size: 16px;
+            color: var(--text-primary);
+            margin-bottom: 6px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .duration-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 13px;
+            color: var(--text-secondary);
+            background: rgba(255, 255, 255, 0.06);
+            padding: 3px 10px;
+            border-radius: 12px;
+        }
+
+        /* Two-Column Options Grid */
+        .options-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-bottom: 8px;
+        }
+
+        @media (max-width: 600px) {
+            .options-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .field-container {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .field-label {
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        /* Real-Time Progress Box */
+        #progress-box {
+            display: none;
+            margin-top: 24px;
+            background: var(--input-bg);
+            padding: 20px;
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border-color);
+            animation: fadeIn 0.3s ease;
+        }
+
+        .progress-bar-bg {
+            width: 100%;
+            background-color: #272727;
+            border-radius: 10px;
+            overflow: hidden;
+            height: 10px;
+            margin-bottom: 14px;
+        }
+
+        .progress-bar-fill {
+            width: 0%;
+            height: 100%;
+            background: linear-gradient(90deg, #ff0000 0%, #ff4d4d 100%);
+            border-radius: 10px;
+            transition: width 0.3s ease;
+            box-shadow: 0 0 12px rgba(255, 0, 0, 0.5);
+        }
+
+        .progress-stats {
+            display: flex;
+            justify-content: space-between;
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        /* Video List & Items */
+        .video-list-container {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .video-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: var(--input-bg);
+            border: 1px solid var(--border-color);
+            padding: 16px 20px;
+            border-radius: var(--radius-md);
+            transition: all 0.2s ease;
+        }
+
+        .video-item:hover {
+            background-color: var(--surface-hover);
+            border-color: #404040;
+        }
+
+        .video-title-text {
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 4px;
+            word-break: break-word;
+        }
+
+        .video-badges {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            margin-top: 4px;
+            margin-bottom: 6px;
+            flex-wrap: wrap;
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+            line-height: 1;
+        }
+
+        .badge.quality-badge {
+            background-color: rgba(62, 166, 255, 0.15);
+            color: var(--accent-blue);
+            border: 1px solid rgba(62, 166, 255, 0.3);
+        }
+
+        .badge.sub-badge {
+            background-color: rgba(255, 255, 255, 0.08);
+            color: var(--text-secondary);
+            border: 1px solid var(--border-color);
+        }
+
+        .video-meta-tags {
+            display: flex;
+            gap: 12px;
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .action-btns {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            margin-left: 16px;
+            flex-wrap: wrap;
+        }
+
+        .download-btn {
+            padding: 8px 14px;
+            background-color: rgba(62, 166, 255, 0.15);
+            color: var(--accent-blue);
+            text-decoration: none;
+            border-radius: var(--radius-sm);
+            font-size: 13px;
+            font-weight: 600;
+            transition: all 0.2s ease;
+            border: 1px solid rgba(62, 166, 255, 0.3);
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .download-btn:hover {
+            background-color: var(--accent-blue);
+            color: #0f0f0f;
+            box-shadow: 0 4px 12px rgba(62, 166, 255, 0.3);
+        }
+
+        .download-btn.sub-btn {
+            background-color: rgba(255, 255, 255, 0.08);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+        }
+
+        .download-btn.sub-btn:hover {
+            background-color: rgba(255, 255, 255, 0.18);
+            color: #ffffff;
+            box-shadow: 0 4px 12px rgba(255, 255, 255, 0.1);
+        }
+
+        .delete-btn {
+            padding: 8px 14px;
+            background-color: transparent;
+            color: var(--danger-red);
+            border: 1px solid rgba(248, 113, 113, 0.3);
+            border-radius: var(--radius-sm);
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .delete-btn:hover {
+            background-color: rgba(248, 113, 113, 0.15);
+            border-color: var(--danger-red);
+            transform: none;
+            box-shadow: none;
+        }
+
+        .alert {
+            padding: 14px 18px;
+            border-radius: var(--radius-md);
+            color: #ff8080;
+            background-color: rgba(255, 0, 0, 0.1);
+            border: 1px solid rgba(255, 0, 0, 0.25);
+            margin-bottom: 20px;
+            display: none;
+            font-size: 14px;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 36px 20px;
+            color: var(--text-muted);
+            font-size: 14px;
+        }
+
+        .empty-state svg {
+            width: 48px;
+            height: 48px;
+            fill: currentColor;
+            margin-bottom: 12px;
+            opacity: 0.4;
+        }
     </style>
 </head>
 <body>
 
+    <!-- App Header -->
+    <div class="app-header">
+        <div class="yt-logo-icon">
+            <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+        </div>
+        <h1>YouTube Downloader <span>Dark Edition</span></h1>
+    </div>
+
+    <!-- Main Downloader Card -->
     <div class="card">
-        <h2>🎬 YouTube Downloader</h2>
         <div id="error-alert" class="alert"></div>
 
         <!-- Step 1: Input URL -->
         <div class="form-group">
-            <input type="text" id="video-url" placeholder="Paste YouTube Video URL here..." />
-            <button id="fetch-btn" onclick="fetchQualities()">Fetch Quality Options</button>
+            <div class="input-wrapper">
+                <span class="input-icon">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
+                </span>
+                <input type="text" id="video-url" placeholder="Paste YouTube Video URL here..." />
+            </div>
+            <button id="fetch-btn" onclick="fetchQualities()">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                Fetch Options
+            </button>
         </div>
 
-        <!-- Step 2: Quality Selection & Confirmation -->
+        <!-- Step 2: Quality & Subtitle Selection -->
         <div id="options-step">
             <div class="video-meta">
                 <img id="thumb" src="" alt="Thumbnail" />
-                <div>
+                <div class="meta-info">
                     <strong id="video-title"></strong>
-                    <div style="font-size: 13px; color: #666;" id="video-duration"></div>
+                    <div class="duration-badge" id="video-duration"></div>
                 </div>
             </div>
             
-            <div class="form-group">
-                <select id="quality-select"></select>
-                <button id="download-btn" onclick="startDownload()">Start Download</button>
+            <div class="options-grid">
+                <div class="field-container">
+                    <label class="field-label" for="quality-select">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>
+                        Video Quality
+                    </label>
+                    <select id="quality-select"></select>
+                </div>
+                <div class="field-container">
+                    <label class="field-label" for="subtitle-select">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+                        Subtitles
+                    </label>
+                    <select id="subtitle-select"></select>
+                </div>
             </div>
+            
+            <button id="download-btn" onclick="startDownload()" style="width: 100%; margin-top: 16px;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                Start Download
+            </button>
         </div>
 
         <!-- Step 3: Real-Time Progress -->
@@ -77,26 +585,64 @@
         </div>
     </div>
 
+    <!-- Downloads Section Card -->
     <div class="card">
-        <h3>Server Downloads (Auto-cleans after 7 days)</h3>
-        <div id="video-list">
+        <div class="card-header">
+            <h3>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent-blue)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+                Server Downloads
+            </h3>
+            <span class="card-subtitle">Auto-cleans after 7 days</span>
+        </div>
+
+        <div id="video-list" class="video-list-container">
             {% if videos %}
                 {% for video in videos %}
                     <div class="video-item" id="video-card-{{ video.id }}">
                         <div>
-                            <strong>{{ video.title }}</strong><br>
-                            <small style="color: #666;">
-                                Added: {{ video.created_at[:16].replace('T', ' ') }} | Size: {{ video.file_size|filesizeformat }}
-                            </small>
+                            <div class="video-title-text">{{ video.title }}</div>
+                            {% if video.quality or video.subtitle_lang %}
+                                <div class="video-badges">
+                                    {% if video.quality %}
+                                        <span class="badge quality-badge">
+                                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>
+                                            {{ video.quality }}
+                                        </span>
+                                    {% endif %}
+                                    {% if video.subtitle_lang %}
+                                        <span class="badge sub-badge">
+                                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+                                            CC: {{ video.subtitle_lang }}
+                                        </span>
+                                    {% endif %}
+                                </div>
+                            {% endif %}
+                            <div class="video-meta-tags">
+                                <span>Added: {{ video.created_at[:16].replace('T', ' ') }}</span>
+                                <span>•</span>
+                                <span>Size: {{ video.file_size|filesizeformat }}</span>
+                            </div>
                         </div>
                         <div class="action-btns">
-                            <a href="{{ url_for('download_file', filename=video.filename) }}" class="download-btn">Download</a>
+                            <a href="{{ url_for('download_file', filename=video.filename) }}" class="download-btn">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                                Video
+                            </a>
+                            {% if video.subtitle_filename %}
+                                <a href="{{ url_for('download_file', filename=video.subtitle_filename) }}" class="download-btn sub-btn" title="Download Subtitle File ({{ video.subtitle_filename }})">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+                                    Subtitles
+                                </a>
+                            {% endif %}
                             <button class="delete-btn" onclick="deleteVideo('{{ video.id }}')">Delete</button>
                         </div>
                     </div>
                 {% endfor %}
             {% else %}
-                <p id="empty-msg" style="color: #777;">No videos downloaded yet.</p>
+                <div id="empty-msg" class="empty-state">
+                    <svg viewBox="0 0 24 24"><path d="M19 18H5V6h14m0-2H5c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zM10 8v8l6-4-6-4z"/></svg>
+                    <div>No videos downloaded yet.</div>
+                </div>
             {% endif %}
         </div>
     </div>
@@ -115,7 +661,10 @@
             if (!currentUrl) return;
 
             fetchBtn.disabled = true;
-            fetchBtn.innerText = 'Analyzing...';
+            fetchBtn.innerHTML = `
+                <svg class="spinner" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48l2.83 2.83M2 12h4m12 0h4M4.93 19.07l2.83-2.83m8.48-8.48l2.83-2.83"/></svg>
+                Analyzing...
+            `;
 
             try {
                 const response = await fetch('/get-formats', {
@@ -131,14 +680,34 @@
                 document.getElementById('video-title').innerText = data.title;
                 document.getElementById('video-duration').innerText = `Duration: ${data.duration}`;
 
-                const select = document.getElementById('quality-select');
-                select.innerHTML = '';
+                // Populate Formats
+                const qualitySelect = document.getElementById('quality-select');
+                qualitySelect.innerHTML = '';
                 data.formats.forEach(f => {
                     const opt = document.createElement('option');
                     opt.value = f.format_id;
                     opt.innerText = f.resolution;
-                    select.appendChild(opt);
+                    qualitySelect.appendChild(opt);
                 });
+
+                // Populate Subtitles
+                const subSelect = document.getElementById('subtitle-select');
+                subSelect.innerHTML = '';
+                if (data.subtitles && data.subtitles.length > 0) {
+                    subSelect.disabled = false;
+                    data.subtitles.forEach(s => {
+                        const opt = document.createElement('option');
+                        opt.value = s.code;
+                        opt.innerText = s.name;
+                        subSelect.appendChild(opt);
+                    });
+                } else {
+                    const opt = document.createElement('option');
+                    opt.value = 'none';
+                    opt.innerText = 'No Subtitles Available';
+                    subSelect.appendChild(opt);
+                    subSelect.disabled = true;
+                }
 
                 document.getElementById('options-step').style.display = 'block';
             } catch (err) {
@@ -146,12 +715,22 @@
                 alertBox.style.display = 'block';
             } finally {
                 fetchBtn.disabled = false;
-                fetchBtn.innerText = 'Fetch Quality Options';
+                fetchBtn.innerHTML = `
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                    Fetch Options
+                `;
             }
         }
 
         async function startDownload() {
-            const formatId = document.getElementById('quality-select').value;
+            const qualitySelect = document.getElementById('quality-select');
+            const formatId = qualitySelect.value;
+            const qualityLabel = qualitySelect.options[qualitySelect.selectedIndex] ? qualitySelect.options[qualitySelect.selectedIndex].text : '';
+
+            const subSelect = document.getElementById('subtitle-select');
+            const subtitleCode = subSelect.value;
+            const subtitleLabel = subSelect.disabled || subtitleCode === 'none' ? null : (subSelect.options[subSelect.selectedIndex] ? subSelect.options[subSelect.selectedIndex].text : null);
+
             const downloadBtn = document.getElementById('download-btn');
             const progressBox = document.getElementById('progress-box');
 
@@ -162,7 +741,13 @@
                 const response = await fetch('/start-download', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ url: currentUrl, format_id: formatId })
+                    body: JSON.stringify({
+                        url: currentUrl,
+                        format_id: formatId,
+                        quality_label: qualityLabel,
+                        subtitle_code: subtitleCode,
+                        subtitle_label: subtitleLabel
+                    })
                 });
 
                 const data = await response.json();
@@ -180,7 +765,7 @@
                 const data = JSON.parse(event.data);
 
                 if (data.status === 'downloading') {
-                    // Update the green progress bar width
+                    // Update progress bar width
                     document.getElementById('progress-fill').style.width = data.percent;
                     
                     // Update stats text
@@ -223,7 +808,12 @@
                     // Show empty state if no videos remain
                     const list = document.getElementById('video-list');
                     if (list.children.length === 0) {
-                        list.innerHTML = '<p id="empty-msg" style="color: #777;">No videos downloaded yet.</p>';
+                        list.innerHTML = `
+                            <div id="empty-msg" class="empty-state">
+                                <svg viewBox="0 0 24 24"><path d="M19 18H5V6h14m0-2H5c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zM10 8v8l6-4-6-4z"/></svg>
+                                <div>No videos downloaded yet.</div>
+                            </div>
+                        `;
                     }
                 } else {
                     alert(`Delete failed: ${data.error || 'Unknown error'}`);

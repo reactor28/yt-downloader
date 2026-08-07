@@ -1,0 +1,22 @@
+[Unit]
+Description=Youtube Downloader
+After=network.target
+
+[Service]
+# The user and group you want the script to run under
+User=1000
+Group=1000
+
+# The directory where your script lives
+WorkingDirectory=/home/bob/Downloads/ytdl_web
+
+# Full path to the Python interpreter and your script
+# Note: If using a virtual environment, point to the 'python' inside the 'bin' folder
+ExecStart=/usr/bin/python3 /home/bob/Downloads/ytdl_web/app.py
+
+# Restart policy: 'always' ensures it comes back if it fails
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
