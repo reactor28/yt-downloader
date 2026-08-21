@@ -23,6 +23,7 @@ A lightweight, self-hosted web interface built with Python (Flask) and `yt-dlp` 
 ### Prerequisites
 - **Linux OS** (Fedora, RHEL, CentOS Stream, etc.)
 - **Python 3.8+**
+- **Node.js** or **Deno** (Required JavaScript runtime for YouTube signature & n-token deciphering)
 - **FFmpeg** (Recommended for video/audio stream merging and subtitle formatting)
 
 ### Python Libraries
@@ -36,7 +37,7 @@ A lightweight, self-hosted web interface built with Python (Flask) and `yt-dlp` 
 ### 1. Install System Packages
 On Fedora distributions using `dnf`:
 ```bash
-sudo dnf install python3 python3-pip ffmpeg -y
+sudo dnf install python3 python3-pip nodejs ffmpeg -y
 ```
 
 > **Note**: If `ffmpeg` is not available in your standard Fedora repositories, enable RPM Fusion first:

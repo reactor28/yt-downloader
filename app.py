@@ -78,7 +78,14 @@ def get_formats():
     if not url:
         return jsonify({'error': 'Please provide a valid URL'}), 400
 
-    ydl_opts = {'quiet': True, 'noplaylist': True}
+    js_runtimes = {'node': {'path': '/usr/bin/node'},
+                   'deno': {'path': '/home/bob/.deno/bin/deno'}}
+
+    ydl_opts = {
+        'quiet': True,
+        'noplaylist': True,
+        'js_runtimes': js_runtimes #['deno', 'node', 'quickjs', 'bun']
+    }
     
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
@@ -201,13 +208,23 @@ def run_yt_dlp(task_id, url, format_id, quality_label='', subtitle_code='none', 
             progress_data[task_id]['status'] = 'processing'
             progress_data[task_id]['percent'] = '100%'
 
+    js_runtimes = {'node': {'path': '/usr/bin/node'},
+                   'deno': {'path': '/home/bob/.deno/bin/deno'}}
+
     ydl_opts = {
         'format': format_id,
         'outtmpl': os.path.join(DOWNLOAD_DIR, '%(title)s.%(ext)s'),
         'noplaylist': True,
         'no_color': True,  # <--- DISABLES ANSI ESCAPE CODES
         'progress_hooks': [progress_hook],
-        'quiet': True
+        'quiet': True,
+        'js_runtimes': js_runtimes,  # ['deno', 'node', 'quickjs', 'bun']
+        'remote_components': ['ejs:github'],
+        'extractor_args': {
+            'youtube': {
+                'player_client': ['android', 'web_embedded']
+            }
+        },
     }
 
     if subtitle_code and subtitle_code != 'none':
