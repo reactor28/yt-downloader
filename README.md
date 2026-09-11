@@ -10,6 +10,7 @@ A lightweight, self-hosted web interface built with Python (Flask) and `yt-dlp` 
 ## 🚀 Features
 
 - **YouTube Dark Theme UI**: Sleek, modern dark-mode interface inspired by YouTube.
+- **Download Queue & Multi-User Live Sync**: Add multiple downloads to a sequential processing queue while downloads are actively running. Any connected user can see real-time download progress and the pending queue.
 - **Format & Quality Selection**: Query available MP4 video resolutions, Best Quality presets, or Audio-Only modes.
 - **Subtitle & Caption Extraction**: Extract and download available manual subtitles or auto-generated captions (`.srt` / `.vtt`).
 - **Real-Time Progress Tracking**: Watch live percentage, download speed, and ETA metrics streamed via Server-Sent Events (SSE).

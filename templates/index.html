@@ -17,6 +17,8 @@
             --primary-red: #ff0000;
             --primary-red-hover: #cc0000;
             --accent-blue: #3ea6ff;
+            --accent-amber: #f59e0b;
+            --accent-green: #22c55e;
             --danger-red: #f87171;
             --text-primary: #f1f1f1;
             --text-secondary: #aaaaaa;
@@ -97,16 +99,17 @@
             background-color: var(--surface-color);
             border: 1px solid var(--border-color);
             border-radius: var(--radius-lg);
-            padding: 28px;
-            margin-bottom: 28px;
+            padding: 24px;
+            margin-bottom: 24px;
             box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+            transition: all 0.2s ease;
         }
 
         .card-header {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            margin-bottom: 20px;
+            margin-bottom: 18px;
         }
 
         .card h2, .card h3 {
@@ -121,6 +124,23 @@
         .card-subtitle {
             font-size: 13px;
             color: var(--text-muted);
+        }
+
+        /* Pulsing Dot Indicator */
+        .pulsing-dot {
+            width: 9px;
+            height: 9px;
+            border-radius: 50%;
+            background-color: var(--primary-red);
+            box-shadow: 0 0 8px var(--primary-red);
+            animation: pulse-red 1.5s infinite;
+            display: inline-block;
+        }
+
+        @keyframes pulse-red {
+            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(255, 0, 0, 0.7); }
+            70% { transform: scale(1.15); box-shadow: 0 0 0 8px rgba(255, 0, 0, 0); }
+            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(255, 0, 0, 0); }
         }
 
         /* Form Group */
@@ -301,6 +321,13 @@
             .options-grid {
                 grid-template-columns: 1fr;
             }
+            .video-meta {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            .video-meta img {
+                width: 100%;
+            }
         }
 
         .field-container {
@@ -318,15 +345,43 @@
             gap: 6px;
         }
 
-        /* Real-Time Progress Box */
-        #progress-box {
-            display: none;
-            margin-top: 24px;
+        /* Real-Time Progress Box inside Active Card */
+        .active-download-body {
             background: var(--input-bg);
-            padding: 20px;
+            padding: 18px 20px;
             border-radius: var(--radius-md);
             border: 1px solid var(--border-color);
-            animation: fadeIn 0.3s ease;
+        }
+
+        .active-video-header {
+            display: flex;
+            gap: 16px;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .active-thumb {
+            width: 100px;
+            aspect-ratio: 16/9;
+            object-fit: cover;
+            border-radius: var(--radius-sm);
+            background: #2a2a2a;
+            flex-shrink: 0;
+        }
+
+        .active-meta {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .active-title {
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 6px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
         .progress-bar-bg {
@@ -335,7 +390,7 @@
             border-radius: 10px;
             overflow: hidden;
             height: 10px;
-            margin-bottom: 14px;
+            margin-bottom: 12px;
         }
 
         .progress-bar-fill {
@@ -352,6 +407,97 @@
             justify-content: space-between;
             font-size: 13px;
             color: var(--text-secondary);
+        }
+
+        /* Queue Styling */
+        .queue-list-container {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .queue-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: var(--input-bg);
+            border: 1px solid var(--border-color);
+            padding: 14px 18px;
+            border-radius: var(--radius-md);
+            gap: 14px;
+            transition: all 0.2s ease;
+        }
+
+        .queue-item:hover {
+            background-color: var(--surface-hover);
+            border-color: #404040;
+        }
+
+        .queue-item-info {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            flex: 1;
+            min-width: 0;
+        }
+
+        .queue-thumb {
+            width: 70px;
+            aspect-ratio: 16/9;
+            object-fit: cover;
+            border-radius: var(--radius-sm);
+            background: #2a2a2a;
+            flex-shrink: 0;
+        }
+
+        .queue-text-block {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .queue-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-primary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            margin-bottom: 4px;
+        }
+
+        .queue-pos-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 700;
+            background-color: rgba(245, 158, 11, 0.15);
+            color: var(--accent-amber);
+            border: 1px solid rgba(245, 158, 11, 0.3);
+            white-space: nowrap;
+        }
+
+        .queue-cancel-btn {
+            padding: 6px 12px;
+            background-color: transparent;
+            color: var(--text-muted);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: var(--radius-sm);
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            white-space: nowrap;
+        }
+
+        .queue-cancel-btn:hover {
+            color: var(--danger-red);
+            border-color: rgba(248, 113, 113, 0.3);
+            background-color: rgba(248, 113, 113, 0.1);
+            transform: none;
+            box-shadow: none;
         }
 
         /* Video List & Items */
@@ -415,6 +561,12 @@
             background-color: rgba(255, 255, 255, 0.08);
             color: var(--text-secondary);
             border: 1px solid var(--border-color);
+        }
+
+        .badge.status-badge {
+            background-color: rgba(34, 197, 94, 0.15);
+            color: var(--accent-green);
+            border: 1px solid rgba(34, 197, 94, 0.3);
         }
 
         .video-meta-tags {
@@ -509,6 +661,33 @@
             margin-bottom: 12px;
             opacity: 0.4;
         }
+
+        /* Toast notification */
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            background-color: #212121;
+            color: #f1f1f1;
+            border: 1px solid #383838;
+            padding: 14px 20px;
+            border-radius: 8px;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.6);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            z-index: 1000;
+            opacity: 0;
+            transform: translateY(12px);
+            transition: all 0.3s ease;
+            pointer-events: none;
+            font-size: 14px;
+        }
+
+        .toast.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
     </style>
 </head>
 <body>
@@ -521,7 +700,7 @@
         <h1>YouTube Downloader <span>Dark Edition</span></h1>
     </div>
 
-    <!-- Main Downloader Card -->
+    <!-- Main Downloader Form Card -->
     <div class="card">
         <div id="error-alert" class="alert"></div>
 
@@ -568,24 +747,90 @@
             
             <button id="download-btn" onclick="startDownload()" style="width: 100%; margin-top: 16px;">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-                Start Download
+                <span id="download-btn-text">Start Download</span>
             </button>
         </div>
+    </div>
 
-        <!-- Step 3: Real-Time Progress -->
-        <div id="progress-box">
+    <!-- Active Download Card (Visible to all users) -->
+    <div class="card" id="active-download-card" style="{% if not active %}display: none;{% endif %} border-color: rgba(255, 0, 0, 0.4);">
+        <div class="card-header">
+            <h3>
+                <span class="pulsing-dot"></span>
+                Currently Downloading
+            </h3>
+            <span class="badge status-badge" id="active-status-badge">
+                {{ active.status|capitalize if active else 'Downloading' }}
+            </span>
+        </div>
+
+        <div class="active-download-body">
+            <div class="active-video-header">
+                <img id="active-thumb-img" class="active-thumb" src="{{ active.thumbnail if active and active.thumbnail else '' }}" style="{% if not active or not active.thumbnail %}display: none;{% endif %}" alt="Thumbnail" />
+                <div class="active-meta">
+                    <div id="active-title-text" class="active-title">{{ active.title if active else 'Preparing download...' }}</div>
+                    <div class="video-badges">
+                        <span class="badge quality-badge" id="active-quality-tag" style="{% if not active or not active.quality_label %}display: none;{% endif %}">
+                            {{ active.quality_label if active else '' }}
+                        </span>
+                        <span class="badge sub-badge" id="active-sub-tag" style="{% if not active or not active.subtitle_label %}display: none;{% endif %}">
+                            CC: {{ active.subtitle_label if active else '' }}
+                        </span>
+                    </div>
+                </div>
+            </div>
+
             <div class="progress-bar-bg">
-                <div id="progress-fill" class="progress-bar-fill"></div>
+                <div id="active-progress-fill" class="progress-bar-fill" style="width: {{ active.percent if active else '0%' }};"></div>
             </div>
             <div class="progress-stats">
-                <span id="progress-percent">0%</span>
-                <span id="progress-speed">0 KiB/s</span>
-                <span id="progress-eta">ETA: --</span>
+                <span id="active-percent-text">{{ active.percent if active else '0%' }}</span>
+                <span id="active-speed-text">{{ active.speed if active else '0 KiB/s' }}</span>
+                <span id="active-eta-text">ETA: {{ active.eta if active else '--' }}</span>
             </div>
         </div>
     </div>
 
-    <!-- Downloads Section Card -->
+    <!-- Download Queue Card (Visible to all users when items waiting) -->
+    <div class="card" id="queue-card" style="{% if not queue or queue|length == 0 %}display: none;{% endif %}">
+        <div class="card-header">
+            <h3>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent-amber)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                Download Queue
+            </h3>
+            <span class="card-subtitle" id="queue-subtitle">{{ queue|length if queue else 0 }} waiting</span>
+        </div>
+
+        <div id="queue-list" class="queue-list-container">
+            {% if queue %}
+                {% for item in queue %}
+                    <div class="queue-item" id="queue-item-{{ item.task_id }}">
+                        <div class="queue-item-info">
+                            <span class="queue-pos-badge">#{{ loop.index }}</span>
+                            {% if item.thumbnail %}
+                                <img src="{{ item.thumbnail }}" class="queue-thumb" alt="Thumb" />
+                            {% endif %}
+                            <div class="queue-text-block">
+                                <div class="queue-title">{{ item.title }}</div>
+                                <div class="video-badges">
+                                    {% if item.quality_label %}
+                                        <span class="badge quality-badge">{{ item.quality_label }}</span>
+                                    {% endif %}
+                                    {% if item.subtitle_label %}
+                                        <span class="badge sub-badge">CC: {{ item.subtitle_label }}</span>
+                                    {% endif %}
+                                    <span class="badge" style="background: rgba(255,255,255,0.06); color: var(--text-muted);">In Queue</span>
+                                </div>
+                            </div>
+                        </div>
+                        <button class="queue-cancel-btn" onclick="cancelQueue('{{ item.task_id }}')">✕ Remove</button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Server Downloads Card -->
     <div class="card">
         <div class="card-header">
             <h3>
@@ -647,9 +892,52 @@
         </div>
     </div>
 
+    <!-- Floating Toast Notification -->
+    <div id="toast" class="toast"></div>
+
     <script>
         let currentUrl = '';
+        let currentTitle = '';
+        let currentThumbnail = '';
+        let hasActiveDownload = false;
+        let lastKnownVideoId = '{{ videos[0].id if videos and videos|length > 0 else "" }}';
+        let lastKnownCount = {{ videos|length if videos else 0 }};
 
+        // Helper: Format bytes identically to backend
+        function formatBytes(bytes) {
+            if (!bytes || bytes === 0) return '0 B';
+            const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+            let size = Number(bytes);
+            let unitIndex = 0;
+            while (size >= 1024.0 && unitIndex < units.length - 1) {
+                size /= 1024.0;
+                unitIndex++;
+            }
+            return `${size.toFixed(2)} ${units[unitIndex]}`;
+        }
+
+        // Helper: Escape HTML to prevent injection
+        function escapeHtml(str) {
+            if (!str) return '';
+            return String(str)
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+
+        // Toast feedback notification
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            toast.innerText = message;
+            toast.classList.add('show');
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3500);
+        }
+
+        // Step 1: Fetch quality and subtitle formats
         async function fetchQualities() {
             const urlInput = document.getElementById('video-url');
             const fetchBtn = document.getElementById('fetch-btn');
@@ -676,9 +964,12 @@
                 const data = await response.json();
                 if (!response.ok) throw new Error(data.error);
 
-                document.getElementById('thumb').src = data.thumbnail;
-                document.getElementById('video-title').innerText = data.title;
-                document.getElementById('video-duration').innerText = `Duration: ${data.duration}`;
+                currentTitle = data.title || 'Video';
+                currentThumbnail = data.thumbnail || '';
+
+                document.getElementById('thumb').src = currentThumbnail;
+                document.getElementById('video-title').innerText = currentTitle;
+                document.getElementById('video-duration').innerText = `Duration: ${data.duration || '--'}`;
 
                 // Populate Formats
                 const qualitySelect = document.getElementById('quality-select');
@@ -709,6 +1000,9 @@
                     subSelect.disabled = true;
                 }
 
+                // Update button text based on whether a download is currently running
+                updateDownloadButtonText();
+
                 document.getElementById('options-step').style.display = 'block';
             } catch (err) {
                 alertBox.innerText = err.message || 'Failed to fetch video formats.';
@@ -722,6 +1016,17 @@
             }
         }
 
+        function updateDownloadButtonText() {
+            const btnText = document.getElementById('download-btn-text');
+            if (!btnText) return;
+            if (hasActiveDownload) {
+                btnText.innerText = '+ Add to Queue';
+            } else {
+                btnText.innerText = 'Start Download';
+            }
+        }
+
+        // Step 2: Submit download to queue
         async function startDownload() {
             const qualitySelect = document.getElementById('quality-select');
             const formatId = qualitySelect.value;
@@ -732,10 +1037,7 @@
             const subtitleLabel = subSelect.disabled || subtitleCode === 'none' ? null : (subSelect.options[subSelect.selectedIndex] ? subSelect.options[subSelect.selectedIndex].text : null);
 
             const downloadBtn = document.getElementById('download-btn');
-            const progressBox = document.getElementById('progress-box');
-
             downloadBtn.disabled = true;
-            progressBox.style.display = 'block';
 
             try {
                 const response = await fetch('/start-download', {
@@ -743,6 +1045,8 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         url: currentUrl,
+                        title: currentTitle,
+                        thumbnail: currentThumbnail,
                         format_id: formatId,
                         quality_label: qualityLabel,
                         subtitle_code: subtitleCode,
@@ -751,70 +1055,143 @@
                 });
 
                 const data = await response.json();
-                trackProgress(data.task_id);
+                if (!response.ok) throw new Error(data.error || 'Failed to submit download');
+
+                if (data.status === 'starting') {
+                    showToast(`Starting download: "${currentTitle}"`);
+                } else {
+                    showToast(`Added to queue (Position #${data.queue_position}): "${currentTitle}"`);
+                }
+
+                // Reset options step and clear input for the next video
+                document.getElementById('options-step').style.display = 'none';
+                document.getElementById('video-url').value = '';
+                currentUrl = '';
+                currentTitle = '';
+                currentThumbnail = '';
             } catch (err) {
-                alert('Failed to initiate download.');
+                alert(err.message || 'Failed to initiate download.');
+            } finally {
                 downloadBtn.disabled = false;
             }
         }
 
-        function trackProgress(taskId) {
-            const eventSource = new EventSource(`/progress/${taskId}`);
-
-            eventSource.onmessage = (event) => {
-                const data = JSON.parse(event.data);
-
-                if (data.status === 'downloading') {
-                    // Update progress bar width
-                    document.getElementById('progress-fill').style.width = data.percent;
-                    
-                    // Update stats text
-                    document.getElementById('progress-percent').innerText = data.percent;
-                    document.getElementById('progress-speed').innerText = data.speed;
-                    document.getElementById('progress-eta').innerText = `ETA: ${data.eta}`;
-                } else if (data.status === 'processing') {
-                    document.getElementById('progress-fill').style.width = '100%';
-                    document.getElementById('progress-percent').innerText = 'Processing/Merging...';
-                    document.getElementById('progress-speed').innerText = '';
-                    document.getElementById('progress-eta').innerText = '';
-                } else if (data.status === 'complete') {
-                    eventSource.close();
-                    document.getElementById('progress-fill').style.width = '100%';
-                    document.getElementById('progress-percent').innerText = 'Complete!';
-                    setTimeout(() => window.location.reload(), 1000);
-                } else if (data.status === 'error') {
-                    eventSource.close();
-                    alert(`Error: ${data.error}`);
-                    document.getElementById('download-btn').disabled = false;
+        // Cancel a queued task
+        async function cancelQueue(taskId) {
+            try {
+                const response = await fetch(`/cancel-queue/${taskId}`, { method: 'POST' });
+                const data = await response.json();
+                if (response.ok && data.success) {
+                    showToast('Item removed from queue');
+                    const elem = document.getElementById(`queue-item-${taskId}`);
+                    if (elem) elem.remove();
+                } else {
+                    alert(data.error || 'Could not remove item from queue');
                 }
-            };
+            } catch (err) {
+                alert('Network error canceling queue item.');
+            }
         }
 
+        // Fetch & re-render Server Downloads list without page reload
+        async function fetchVideos() {
+            try {
+                const response = await fetch('/api/videos');
+                if (!response.ok) return;
+                const videos = await response.json();
+                renderVideoList(videos);
+                lastKnownCount = videos.length;
+                lastKnownVideoId = videos.length > 0 ? videos[0].id : '';
+            } catch (e) {
+                console.error('Error fetching updated video list:', e);
+            }
+        }
+
+        function renderVideoList(videos) {
+            const list = document.getElementById('video-list');
+            if (!videos || videos.length === 0) {
+                list.innerHTML = `
+                    <div id="empty-msg" class="empty-state">
+                        <svg viewBox="0 0 24 24"><path d="M19 18H5V6h14m0-2H5c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zM10 8v8l6-4-6-4z"/></svg>
+                        <div>No videos downloaded yet.</div>
+                    </div>
+                `;
+                return;
+            }
+
+            let html = '';
+            videos.forEach(video => {
+                let badgesHtml = '';
+                if (video.quality || video.subtitle_lang) {
+                    badgesHtml = '<div class="video-badges">';
+                    if (video.quality) {
+                        badgesHtml += `
+                            <span class="badge quality-badge">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>
+                                ${escapeHtml(video.quality)}
+                            </span>
+                        `;
+                    }
+                    if (video.subtitle_lang) {
+                        badgesHtml += `
+                            <span class="badge sub-badge">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+                                CC: ${escapeHtml(video.subtitle_lang)}
+                            </span>
+                        `;
+                    }
+                    badgesHtml += '</div>';
+                }
+
+                let subBtnHtml = '';
+                if (video.subtitle_filename) {
+                    subBtnHtml = `
+                        <a href="/download/${encodeURIComponent(video.subtitle_filename)}" class="download-btn sub-btn" title="Download Subtitles (${escapeHtml(video.subtitle_filename)})">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+                            Subtitles
+                        </a>
+                    `;
+                }
+
+                const formattedDate = (video.created_at || '').substring(0, 16).replace('T', ' ');
+                const formattedSize = formatBytes(video.file_size);
+
+                html += `
+                    <div class="video-item" id="video-card-${video.id}">
+                        <div>
+                            <div class="video-title-text">${escapeHtml(video.title)}</div>
+                            ${badgesHtml}
+                            <div class="video-meta-tags">
+                                <span>Added: ${formattedDate}</span>
+                                <span>•</span>
+                                <span>Size: ${formattedSize}</span>
+                            </div>
+                        </div>
+                        <div class="action-btns">
+                            <a href="/download/${encodeURIComponent(video.filename)}" class="download-btn">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                                Video
+                            </a>
+                            ${subBtnHtml}
+                            <button class="delete-btn" onclick="deleteVideo('${video.id}')">Delete</button>
+                        </div>
+                    </div>
+                `;
+            });
+
+            list.innerHTML = html;
+        }
+
+        // Delete video
         async function deleteVideo(videoId) {
             if (!confirm('Are you sure you want to delete this video from the server?')) return;
 
             try {
-                const response = await fetch(`/delete-video/${videoId}`, {
-                    method: 'POST'
-                });
-
+                const response = await fetch(`/delete-video/${videoId}`, { method: 'POST' });
                 const data = await response.json();
                 if (response.ok && data.success) {
-                    const card = document.getElementById(`video-card-${videoId}`);
-                    if (card) {
-                        card.remove();
-                    }
-                    
-                    // Show empty state if no videos remain
-                    const list = document.getElementById('video-list');
-                    if (list.children.length === 0) {
-                        list.innerHTML = `
-                            <div id="empty-msg" class="empty-state">
-                                <svg viewBox="0 0 24 24"><path d="M19 18H5V6h14m0-2H5c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zM10 8v8l6-4-6-4z"/></svg>
-                                <div>No videos downloaded yet.</div>
-                            </div>
-                        `;
-                    }
+                    showToast('Video deleted');
+                    fetchVideos();
                 } else {
                     alert(`Delete failed: ${data.error || 'Unknown error'}`);
                 }
@@ -822,6 +1199,140 @@
                 alert('Failed to delete video due to a server error.');
             }
         }
+
+        // Real-Time Global SSE Sync for Active Download & Queue
+        function initGlobalStream() {
+            const stream = new EventSource('/stream');
+
+            stream.onmessage = (event) => {
+                try {
+                    const data = JSON.parse(event.data);
+                    const active = data.active;
+                    const queue = data.queue || [];
+
+                    // 1. Update Active Download Card
+                    const activeCard = document.getElementById('active-download-card');
+                    if (active) {
+                        hasActiveDownload = true;
+                        activeCard.style.display = 'block';
+
+                        document.getElementById('active-title-text').innerText = active.title || 'Downloading video...';
+                        
+                        // Active thumbnail
+                        const thumbImg = document.getElementById('active-thumb-img');
+                        if (active.thumbnail) {
+                            thumbImg.src = active.thumbnail;
+                            thumbImg.style.display = 'block';
+                        } else {
+                            thumbImg.style.display = 'none';
+                        }
+
+                        // Quality Tag
+                        const qTag = document.getElementById('active-quality-tag');
+                        if (active.quality_label) {
+                            qTag.innerText = active.quality_label;
+                            qTag.style.display = 'inline-flex';
+                        } else {
+                            qTag.style.display = 'none';
+                        }
+
+                        // Subtitle Tag
+                        const sTag = document.getElementById('active-sub-tag');
+                        if (active.subtitle_label) {
+                            sTag.innerText = `CC: ${active.subtitle_label}`;
+                            sTag.style.display = 'inline-flex';
+                        } else {
+                            sTag.style.display = 'none';
+                        }
+
+                        // Status Badge
+                        const statusBadge = document.getElementById('active-status-badge');
+                        let statusText = active.status || 'downloading';
+                        if (statusText === 'processing') statusText = 'Processing/Merging';
+                        if (statusText === 'complete') statusText = 'Complete!';
+                        if (statusText === 'error') statusText = 'Error';
+                        statusBadge.innerText = statusText.toUpperCase();
+
+                        // Progress Bar & Stats
+                        document.getElementById('active-progress-fill').style.width = active.percent || '0%';
+                        document.getElementById('active-percent-text').innerText = active.percent || '0%';
+                        document.getElementById('active-speed-text').innerText = active.speed || '';
+                        document.getElementById('active-eta-text').innerText = active.eta ? `ETA: ${active.eta}` : '';
+
+                        if (active.status === 'error') {
+                            document.getElementById('active-speed-text').innerText = active.error ? `Error: ${active.error}` : 'Failed';
+                        }
+                    } else {
+                        hasActiveDownload = false;
+                        activeCard.style.display = 'none';
+                    }
+
+                    // 2. Update Download Button Label
+                    updateDownloadButtonText();
+
+                    // 3. Update Queue Card
+                    const queueCard = document.getElementById('queue-card');
+                    const queueList = document.getElementById('queue-list');
+                    const queueSubtitle = document.getElementById('queue-subtitle');
+
+                    if (queue.length > 0) {
+                        queueCard.style.display = 'block';
+                        queueSubtitle.innerText = `${queue.length} item${queue.length > 1 ? 's' : ''} waiting`;
+
+                        let qHtml = '';
+                        queue.forEach((item, index) => {
+                            let thumbHtml = '';
+                            if (item.thumbnail) {
+                                thumbHtml = `<img src="${escapeHtml(item.thumbnail)}" class="queue-thumb" alt="Thumb" />`;
+                            }
+
+                            let badges = '';
+                            if (item.quality_label) {
+                                badges += `<span class="badge quality-badge">${escapeHtml(item.quality_label)}</span>`;
+                            }
+                            if (item.subtitle_label) {
+                                badges += `<span class="badge sub-badge">CC: ${escapeHtml(item.subtitle_label)}</span>`;
+                            }
+                            badges += `<span class="badge" style="background: rgba(255,255,255,0.06); color: var(--text-muted);">In Queue</span>`;
+
+                            qHtml += `
+                                <div class="queue-item" id="queue-item-${item.task_id}">
+                                    <div class="queue-item-info">
+                                        <span class="queue-pos-badge">#${index + 1}</span>
+                                        ${thumbHtml}
+                                        <div class="queue-text-block">
+                                            <div class="queue-title">${escapeHtml(item.title)}</div>
+                                            <div class="video-badges">${badges}</div>
+                                        </div>
+                                    </div>
+                                    <button class="queue-cancel-btn" onclick="cancelQueue('${item.task_id}')">✕ Remove</button>
+                                </div>
+                            `;
+                        });
+                        queueList.innerHTML = qHtml;
+                    } else {
+                        queueCard.style.display = 'none';
+                        queueList.innerHTML = '';
+                    }
+
+                    // 4. Detect completed videos & sync video list
+                    if (data.latest_video_id !== lastKnownVideoId || data.videos_count !== lastKnownCount) {
+                        fetchVideos();
+                    }
+                } catch (err) {
+                    console.error('Error processing stream message:', err);
+                }
+            };
+
+            stream.onerror = () => {
+                // EventSource will automatically retry connecting
+            };
+        }
+
+        // Start real-time sync when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            initGlobalStream();
+        });
     </script>
 </body>
 </html>

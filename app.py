@@ -2,6 +2,7 @@ import os
 import json
 import time
 import threading
+import re
 from datetime import datetime, timedelta
 import yt_dlp
 from flask import Flask, render_template, request, redirect, url_for, send_from_directory, flash, jsonify, Response
@@ -13,6 +14,10 @@ DOWNLOAD_DIR = os.path.join(os.path.dirname(__file__), 'downloads')
 DB_FILE = os.path.join(os.path.dirname(__file__), 'videos_db.json')
 os.makedirs(DOWNLOAD_DIR, exist_ok=True)
 
+# Global queue & state management
+queue_lock = threading.Lock()
+download_queue = []
+current_download = None
 progress_data = {}
 
 def load_db():
@@ -36,6 +41,11 @@ def format_bytes(size):
 
 app.jinja_env.filters['filesizeformat'] = format_bytes
 
+def clean_ansi(text):
+    if not text:
+        return ""
+    ansi_escape = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
+    return ansi_escape.sub('', str(text)).strip()
 
 def cleanup_old_videos():
     videos = load_db()
@@ -64,12 +74,219 @@ def cleanup_old_videos():
 
     save_db(remaining_videos)
 
+def get_state_snapshot():
+    with queue_lock:
+        active = dict(current_download) if current_download else None
+        q = [dict(t) for t in download_queue]
+    videos = load_db()
+    return {
+        'active': active,
+        'queue': q,
+        'videos_count': len(videos),
+        'latest_video_id': videos[0]['id'] if videos else None
+    }
+
+def run_download_task(task):
+    task_id = task['task_id']
+    url = task['url']
+    format_id = task['format_id']
+    quality_label = task.get('quality_label', '')
+    subtitle_code = task.get('subtitle_code', 'none')
+    subtitle_label = task.get('subtitle_label')
+
+    def progress_hook(d):
+        if d['status'] == 'downloading':
+            downloaded = d.get('downloaded_bytes', 0)
+            total = d.get('total_bytes') or d.get('total_bytes_estimate', 0)
+            
+            if total > 0:
+                percent_val = round((downloaded / total) * 100, 1)
+                percent_str = f"{percent_val}%"
+            else:
+                percent_str = clean_ansi(d.get('_percent_str', '0%'))
+
+            speed_str = clean_ansi(d.get('_speed_str', '0 KiB/s'))
+            eta_str = clean_ansi(d.get('_eta_str', 'Unknown'))
+
+            with queue_lock:
+                if current_download and current_download['task_id'] == task_id:
+                    current_download['status'] = 'downloading'
+                    current_download['percent'] = percent_str
+                    current_download['speed'] = speed_str
+                    current_download['eta'] = eta_str
+
+            progress_data[task_id] = {
+                'status': 'downloading',
+                'percent': percent_str,
+                'speed': speed_str,
+                'eta': eta_str
+            }
+        elif d['status'] == 'finished':
+            with queue_lock:
+                if current_download and current_download['task_id'] == task_id:
+                    current_download['status'] = 'processing'
+                    current_download['percent'] = '100%'
+                    current_download['speed'] = ''
+                    current_download['eta'] = ''
+
+            progress_data[task_id] = {
+                'status': 'processing',
+                'percent': '100%',
+                'speed': '',
+                'eta': ''
+            }
+
+    js_runtimes = {'node': {'path': '/usr/bin/node'},
+                   'deno': {'path': '/home/bob/.deno/bin/deno'}}
+
+    ydl_opts = {
+        'format': format_id,
+        'outtmpl': os.path.join(DOWNLOAD_DIR, '%(title)s.%(ext)s'),
+        'noplaylist': True,
+        'no_color': True,
+        'progress_hooks': [progress_hook],
+        'quiet': True,
+        'js_runtimes': js_runtimes,
+        'remote_components': ['ejs:github'],
+        'extractor_args': {
+            'youtube': {
+                'player_client': ['android', 'web_embedded']
+            }
+        },
+    }
+
+    if subtitle_code and subtitle_code != 'none':
+        is_auto = subtitle_code.startswith('auto:')
+        clean_lang = subtitle_code.replace('auto:', '')
+        ydl_opts['writesubtitles'] = True
+        ydl_opts['writeautomaticsub'] = is_auto
+        ydl_opts['subtitleslangs'] = [clean_lang]
+        ydl_opts['subtitlesformat'] = 'srt/vtt/best'
+
+    try:
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            info = ydl.extract_info(url, download=True)
+            full_path = ydl.prepare_filename(info)
+            filename = os.path.basename(full_path)
+            file_size = os.path.getsize(full_path) if os.path.exists(full_path) else 0
+
+            # Update resolved video title & thumbnail
+            resolved_title = info.get('title') or task.get('title') or 'Downloaded Video'
+            resolved_thumb = info.get('thumbnail') or task.get('thumbnail') or ''
+            with queue_lock:
+                if current_download and current_download['task_id'] == task_id:
+                    current_download['title'] = resolved_title
+                    if resolved_thumb:
+                        current_download['thumbnail'] = resolved_thumb
+
+            # Detect downloaded subtitle file
+            sub_filename = None
+            if info.get('requested_subtitles'):
+                for lang, sub_info in info['requested_subtitles'].items():
+                    if sub_info.get('filepath') and os.path.exists(sub_info['filepath']):
+                        sub_filename = os.path.basename(sub_info['filepath'])
+                        break
+
+            if not sub_filename and subtitle_code != 'none':
+                base_name = os.path.splitext(filename)[0]
+                for f in os.listdir(DOWNLOAD_DIR):
+                    if f.startswith(base_name) and (f.endswith('.srt') or f.endswith('.vtt')):
+                        sub_filename = f
+                        break
+
+            # Determine Quality Tag
+            if quality_label and quality_label != 'Best Available Quality':
+                quality_tag = quality_label
+            else:
+                if info.get('height'):
+                    quality_tag = f"{info.get('height')}p (Best)"
+                elif format_id == 'bestaudio/best':
+                    quality_tag = "Audio Only"
+                else:
+                    quality_tag = "Best Quality"
+
+            sub_tag = subtitle_label if sub_filename else None
+
+            videos = load_db()
+            video_record = {
+                'id': task_id,
+                'title': resolved_title,
+                'filename': filename,
+                'subtitle_filename': sub_filename,
+                'quality': quality_tag,
+                'subtitle_lang': sub_tag,
+                'file_size': file_size,
+                'created_at': datetime.now().isoformat()
+            }
+            videos.insert(0, video_record)
+            save_db(videos)
+
+            with queue_lock:
+                if current_download and current_download['task_id'] == task_id:
+                    current_download['status'] = 'complete'
+                    current_download['percent'] = '100%'
+
+            progress_data[task_id] = {'status': 'complete'}
+            time.sleep(1.0)
+    except Exception as e:
+        with queue_lock:
+            if current_download and current_download['task_id'] == task_id:
+                current_download['status'] = 'error'
+                current_download['error'] = str(e)
+        progress_data[task_id] = {'status': 'error', 'error': str(e)}
+        time.sleep(3.0)
+
+def queue_worker():
+    global current_download
+    while True:
+        task = None
+        with queue_lock:
+            if download_queue and current_download is None:
+                task = download_queue.pop(0)
+                current_download = {
+                    'task_id': task['task_id'],
+                    'url': task['url'],
+                    'title': task.get('title', 'Video'),
+                    'thumbnail': task.get('thumbnail', ''),
+                    'format_id': task['format_id'],
+                    'quality_label': task.get('quality_label', ''),
+                    'subtitle_code': task.get('subtitle_code', 'none'),
+                    'subtitle_label': task.get('subtitle_label'),
+                    'status': 'downloading',
+                    'percent': '0%',
+                    'speed': '0 KiB/s',
+                    'eta': 'Starting...',
+                    'error': None
+                }
+                progress_data[task['task_id']] = current_download
+
+        if task:
+            try:
+                run_download_task(task)
+            except Exception as e:
+                print(f"Error executing download task {task['task_id']}: {e}")
+            finally:
+                with queue_lock:
+                    current_download = None
+        else:
+            time.sleep(0.5)
+
+# Start background queue processor
+worker_thread = threading.Thread(target=queue_worker, daemon=True)
+worker_thread.start()
+
 
 @app.route('/')
 def index():
     cleanup_old_videos()
     videos = load_db()
-    return render_template('index.html', videos=videos)
+    state = get_state_snapshot()
+    return render_template(
+        'index.html',
+        videos=videos,
+        active=state['active'],
+        queue=state['queue']
+    )
 
 
 @app.route('/get-formats', methods=['POST'])
@@ -84,7 +301,7 @@ def get_formats():
     ydl_opts = {
         'quiet': True,
         'noplaylist': True,
-        'js_runtimes': js_runtimes #['deno', 'node', 'quickjs', 'bun']
+        'js_runtimes': js_runtimes
     }
     
     try:
@@ -153,151 +370,95 @@ def get_formats():
 
 @app.route('/start-download', methods=['POST'])
 def start_download():
-    data = request.json
-    url = data.get('url')
+    data = request.json or {}
+    url = data.get('url', '').strip()
+    if not url:
+        return jsonify({'error': 'Please provide a valid URL'}), 400
+
     format_id = data.get('format_id')
+    title = data.get('title', 'Video')
+    thumbnail = data.get('thumbnail', '')
     quality_label = data.get('quality_label', '')
     subtitle_code = data.get('subtitle_code', 'none')
     subtitle_label = data.get('subtitle_label')
     
     task_id = str(int(time.time() * 1000))
-    progress_data[task_id] = {
-        'status': 'downloading',
-        'percent': '0%',
-        'speed': '0 KiB/s',
-        'eta': 'Unknown'
+    task = {
+        'task_id': task_id,
+        'url': url,
+        'title': title,
+        'thumbnail': thumbnail,
+        'format_id': format_id,
+        'quality_label': quality_label,
+        'subtitle_code': subtitle_code,
+        'subtitle_label': subtitle_label,
+        'added_at': datetime.now().isoformat()
     }
 
-    thread = threading.Thread(
-        target=run_yt_dlp,
-        args=(task_id, url, format_id, quality_label, subtitle_code, subtitle_label)
-    )
-    thread.start()
+    with queue_lock:
+        download_queue.append(task)
+        queue_pos = len(download_queue)
+        is_active_immediately = (current_download is None and queue_pos == 1)
 
-    return jsonify({'task_id': task_id})
+    return jsonify({
+        'task_id': task_id,
+        'queue_position': queue_pos,
+        'status': 'starting' if is_active_immediately else 'queued',
+        'title': title
+    })
 
-import re
 
-# Add helper function to strip ANSI codes just in case
-def clean_ansi(text):
-    if not text:
-        return ""
-    ansi_escape = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
-    return ansi_escape.sub('', str(text)).strip()
+@app.route('/cancel-queue/<task_id>', methods=['POST'])
+def cancel_queue(task_id):
+    global download_queue
+    with queue_lock:
+        initial_len = len(download_queue)
+        download_queue = [t for t in download_queue if t['task_id'] != task_id]
+        removed = len(download_queue) < initial_len
 
-def run_yt_dlp(task_id, url, format_id, quality_label='', subtitle_code='none', subtitle_label=None):
-    def progress_hook(d):
-        if d['status'] == 'downloading':
-            # Extract raw percentages for reliable progress bar filling
-            downloaded = d.get('downloaded_bytes', 0)
-            total = d.get('total_bytes') or d.get('total_bytes_estimate', 0)
-            
-            if total > 0:
-                percent_val = round((downloaded / total) * 100, 1)
-                percent_str = f"{percent_val}%"
-            else:
-                percent_str = clean_ansi(d.get('_percent_str', '0%'))
+    if removed:
+        return jsonify({'success': True, 'message': 'Removed from queue'})
+    return jsonify({'error': 'Item not found in waiting queue'}), 404
 
-            progress_data[task_id] = {
-                'status': 'downloading',
-                'percent': percent_str,
-                'speed': clean_ansi(d.get('_speed_str', '0 KiB/s')),
-                'eta': clean_ansi(d.get('_eta_str', 'Unknown'))
-            }
-        elif d['status'] == 'finished':
-            progress_data[task_id]['status'] = 'processing'
-            progress_data[task_id]['percent'] = '100%'
 
-    js_runtimes = {'node': {'path': '/usr/bin/node'},
-                   'deno': {'path': '/home/bob/.deno/bin/deno'}}
+@app.route('/stream')
+def global_stream():
+    def generate():
+        while True:
+            state = get_state_snapshot()
+            yield f"data: {json.dumps(state)}\n\n"
+            time.sleep(0.5)
 
-    ydl_opts = {
-        'format': format_id,
-        'outtmpl': os.path.join(DOWNLOAD_DIR, '%(title)s.%(ext)s'),
-        'noplaylist': True,
-        'no_color': True,  # <--- DISABLES ANSI ESCAPE CODES
-        'progress_hooks': [progress_hook],
-        'quiet': True,
-        'js_runtimes': js_runtimes,  # ['deno', 'node', 'quickjs', 'bun']
-        'remote_components': ['ejs:github'],
-        'extractor_args': {
-            'youtube': {
-                'player_client': ['android', 'web_embedded']
-            }
-        },
-    }
+    return Response(generate(), mimetype='text/event-stream')
 
-    if subtitle_code and subtitle_code != 'none':
-        is_auto = subtitle_code.startswith('auto:')
-        clean_lang = subtitle_code.replace('auto:', '')
-        ydl_opts['writesubtitles'] = True
-        ydl_opts['writeautomaticsub'] = is_auto
-        ydl_opts['subtitleslangs'] = [clean_lang]
-        ydl_opts['subtitlesformat'] = 'srt/vtt/best'
 
-    try:
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(url, download=True)
-            full_path = ydl.prepare_filename(info)
-            filename = os.path.basename(full_path)
-            file_size = os.path.getsize(full_path) if os.path.exists(full_path) else 0
+@app.route('/api/status')
+def api_status():
+    return jsonify(get_state_snapshot())
 
-            # Detect downloaded subtitle file
-            sub_filename = None
-            if info.get('requested_subtitles'):
-                for lang, sub_info in info['requested_subtitles'].items():
-                    if sub_info.get('filepath') and os.path.exists(sub_info['filepath']):
-                        sub_filename = os.path.basename(sub_info['filepath'])
-                        break
 
-            if not sub_filename and subtitle_code != 'none':
-                base_name = os.path.splitext(filename)[0]
-                for f in os.listdir(DOWNLOAD_DIR):
-                    if f.startswith(base_name) and (f.endswith('.srt') or f.endswith('.vtt')):
-                        sub_filename = f
-                        break
-
-            # Determine Quality Tag
-            if quality_label and quality_label != 'Best Available Quality':
-                quality_tag = quality_label
-            else:
-                if info.get('height'):
-                    quality_tag = f"{info.get('height')}p (Best)"
-                elif format_id == 'bestaudio/best':
-                    quality_tag = "Audio Only"
-                else:
-                    quality_tag = "Best Quality"
-
-            sub_tag = subtitle_label if sub_filename else None
-
-            videos = load_db()
-            video_record = {
-                'id': task_id,
-                'title': info.get('title', 'Downloaded Video'),
-                'filename': filename,
-                'subtitle_filename': sub_filename,
-                'quality': quality_tag,
-                'subtitle_lang': sub_tag,
-                'file_size': file_size,
-                'created_at': datetime.now().isoformat()
-            }
-            videos.insert(0, video_record)
-            save_db(videos)
-
-            progress_data[task_id]['status'] = 'complete'
-    except Exception as e:
-        progress_data[task_id] = {'status': 'error', 'error': str(e)}
+@app.route('/api/videos')
+def api_videos():
+    return jsonify(load_db())
 
 
 @app.route('/progress/<task_id>')
 def progress_stream(task_id):
     def generate():
         while True:
-            data = progress_data.get(task_id, {'status': 'waiting'})
+            data = progress_data.get(task_id)
+            if not data:
+                with queue_lock:
+                    if current_download and current_download['task_id'] == task_id:
+                        data = current_download
+                    else:
+                        in_q = any(t['task_id'] == task_id for t in download_queue)
+                        if in_q:
+                            data = {'status': 'queued', 'percent': '0%', 'speed': 'Queued', 'eta': 'Waiting'}
+                        else:
+                            data = {'status': 'waiting'}
             yield f"data: {json.dumps(data)}\n\n"
-            
             if data.get('status') in ['complete', 'error']:
-                progress_data.pop(task_id, None)
                 break
             time.sleep(0.5)
 
