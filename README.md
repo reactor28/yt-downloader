@@ -10,11 +10,12 @@ A lightweight, self-hosted web interface built with Python (Flask) and `yt-dlp` 
 ## 🚀 Features
 
 - **YouTube Dark Theme UI**: Sleek, modern dark-mode interface inspired by YouTube.
+- **Playlist Downloading**: Download entire YouTube playlists with one click. Choose your preferred quality and subtitle options once, preview video titles and durations, and batch enqueue all videos for automated sequential downloading.
 - **Download Queue & Multi-User Live Sync**: Add multiple downloads to a sequential processing queue while downloads are actively running. Any connected user can see real-time download progress and the pending queue.
 - **Format & Quality Selection**: Query available MP4 video resolutions, Best Quality presets, or Audio-Only modes.
 - **Subtitle & Caption Extraction**: Extract and download available manual subtitles or auto-generated captions (`.srt` / `.vtt`).
 - **Real-Time Progress Tracking**: Watch live percentage, download speed, and ETA metrics streamed via Server-Sent Events (SSE).
-- **Metadata Badges**: View quality and subtitle language tags directly on downloaded server items.
+- **Metadata Badges**: View quality, subtitle language tags, and playlist origin badges directly on downloaded server items.
 - **Automated Retention**: Built-in 7-day retention policy that automatically purges old downloads and database records.
 
 ---

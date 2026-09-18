@@ -268,7 +268,7 @@
             display: flex;
             gap: 18px;
             align-items: center;
-            margin-bottom: 20px;
+            margin-bottom: 16px;
             background: var(--input-bg);
             padding: 16px;
             border-radius: var(--radius-md);
@@ -307,6 +307,112 @@
             background: rgba(255, 255, 255, 0.06);
             padding: 3px 10px;
             border-radius: 12px;
+        }
+
+        /* Playlist UI additions */
+        .playlist-banner {
+            display: none;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(245, 158, 11, 0.1);
+            border: 1px solid rgba(245, 158, 11, 0.3);
+            padding: 10px 16px;
+            border-radius: var(--radius-md);
+            margin-bottom: 12px;
+            font-size: 14px;
+            color: var(--accent-amber);
+        }
+
+        .playlist-note {
+            display: none;
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-bottom: 16px;
+            padding: 10px 14px;
+            background: rgba(255, 255, 255, 0.04);
+            border-radius: var(--radius-sm);
+            border-left: 3px solid var(--accent-amber);
+        }
+
+        .mode-selector {
+            display: none;
+            gap: 16px;
+            margin-bottom: 14px;
+            background: var(--input-bg);
+            padding: 10px 14px;
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border-color);
+            font-size: 13px;
+            flex-wrap: wrap;
+        }
+
+        .mode-option {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            color: var(--text-primary);
+        }
+
+        .mode-option input[type="radio"] {
+            accent-color: var(--primary-red);
+            cursor: pointer;
+        }
+
+        .playlist-preview-collapse {
+            display: none;
+            margin-bottom: 16px;
+            background: var(--input-bg);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            padding: 10px 14px;
+            font-size: 13px;
+        }
+
+        .playlist-preview-collapse summary {
+            cursor: pointer;
+            font-weight: 500;
+            color: var(--accent-blue);
+            outline: none;
+        }
+
+        .playlist-preview-list {
+            max-height: 180px;
+            overflow-y: auto;
+            margin-top: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            padding-right: 6px;
+        }
+
+        .playlist-preview-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 6px 10px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 4px;
+            font-size: 12px;
+        }
+
+        .playlist-preview-item-num {
+            color: var(--text-muted);
+            font-weight: 600;
+            min-width: 24px;
+        }
+
+        .playlist-preview-item-title {
+            flex: 1;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            color: var(--text-primary);
+        }
+
+        .playlist-preview-item-dur {
+            color: var(--text-muted);
+            font-size: 11px;
         }
 
         /* Two-Column Options Grid */
@@ -479,6 +585,12 @@
             white-space: nowrap;
         }
 
+        .queue-actions-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
         .queue-cancel-btn {
             padding: 6px 12px;
             background-color: transparent;
@@ -498,6 +610,23 @@
             background-color: rgba(248, 113, 113, 0.1);
             transform: none;
             box-shadow: none;
+        }
+
+        .queue-clear-all-btn {
+            padding: 4px 10px;
+            background: transparent;
+            color: var(--text-muted);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: var(--radius-sm);
+            font-size: 11px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .queue-clear-all-btn:hover {
+            color: var(--danger-red);
+            border-color: rgba(248, 113, 113, 0.4);
+            background: rgba(248, 113, 113, 0.1);
         }
 
         /* Video List & Items */
@@ -567,6 +696,12 @@
             background-color: rgba(34, 197, 94, 0.15);
             color: var(--accent-green);
             border: 1px solid rgba(34, 197, 94, 0.3);
+        }
+
+        .badge.playlist-badge {
+            background: rgba(245, 158, 11, 0.15);
+            color: var(--accent-amber);
+            border: 1px solid rgba(245, 158, 11, 0.3);
         }
 
         .video-meta-tags {
@@ -710,7 +845,7 @@
                 <span class="input-icon">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
                 </span>
-                <input type="text" id="video-url" placeholder="Paste YouTube Video URL here..." />
+                <input type="text" id="video-url" placeholder="Paste YouTube Video or Playlist URL here..." />
             </div>
             <button id="fetch-btn" onclick="fetchQualities()">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
@@ -720,6 +855,31 @@
 
         <!-- Step 2: Quality & Subtitle Selection -->
         <div id="options-step">
+            <!-- Playlist Banner -->
+            <div id="playlist-banner" class="playlist-banner">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15V6M18.5 18a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5ZM12 12H3M16 6H3M12 18H3"/></svg>
+                    <strong>Playlist Detected</strong>
+                </div>
+                <span id="playlist-video-count-badge" class="badge" style="background: rgba(245, 158, 11, 0.2); color: var(--accent-amber); font-size: 12px; padding: 4px 8px;">0 videos</span>
+            </div>
+
+            <!-- Single Video vs Playlist Mode Selector (when URL is a watch URL with list param) -->
+            <div id="playlist-mode-selector" class="mode-selector">
+                <label class="mode-option">
+                    <input type="radio" name="download-mode" id="mode-playlist" value="playlist" checked onchange="toggleDownloadMode('playlist')">
+                    <span id="mode-playlist-label">Download entire playlist</span>
+                </label>
+                <label class="mode-option">
+                    <input type="radio" name="download-mode" id="mode-single" value="single" onchange="toggleDownloadMode('single')">
+                    <span>Download this video only</span>
+                </label>
+            </div>
+
+            <div id="playlist-note" class="playlist-note">
+                One set of download options will be applied to all videos in this playlist.
+            </div>
+
             <div class="video-meta">
                 <img id="thumb" src="" alt="Thumbnail" />
                 <div class="meta-info">
@@ -727,6 +887,12 @@
                     <div class="duration-badge" id="video-duration"></div>
                 </div>
             </div>
+
+            <!-- Collapsible Preview of Playlist Videos -->
+            <details id="playlist-preview-collapse" class="playlist-preview-collapse">
+                <summary id="playlist-preview-summary">Preview all videos in playlist</summary>
+                <div id="playlist-preview-list" class="playlist-preview-list"></div>
+            </details>
             
             <div class="options-grid">
                 <div class="field-container">
@@ -770,6 +936,9 @@
                 <div class="active-meta">
                     <div id="active-title-text" class="active-title">{{ active.title if active else 'Preparing download...' }}</div>
                     <div class="video-badges">
+                        <span class="badge playlist-badge" id="active-playlist-tag" style="{% if not active or not active.playlist_title %}display: none;{% endif %}">
+                            📁 {{ active.playlist_title if active else '' }} ({{ active.playlist_index if active else '' }}/{{ active.playlist_total if active else '' }})
+                        </span>
                         <span class="badge quality-badge" id="active-quality-tag" style="{% if not active or not active.quality_label %}display: none;{% endif %}">
                             {{ active.quality_label if active else '' }}
                         </span>
@@ -798,7 +967,10 @@
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent-amber)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
                 Download Queue
             </h3>
-            <span class="card-subtitle" id="queue-subtitle">{{ queue|length if queue else 0 }} waiting</span>
+            <div class="queue-actions-group">
+                <span class="card-subtitle" id="queue-subtitle">{{ queue|length if queue else 0 }} waiting</span>
+                <button class="queue-clear-all-btn" onclick="clearQueue()" title="Remove all items from queue">Clear All</button>
+            </div>
         </div>
 
         <div id="queue-list" class="queue-list-container">
@@ -813,6 +985,9 @@
                             <div class="queue-text-block">
                                 <div class="queue-title">{{ item.title }}</div>
                                 <div class="video-badges">
+                                    {% if item.playlist_title %}
+                                        <span class="badge playlist-badge">📁 {{ item.playlist_title }} ({{ item.playlist_index }}/{{ item.playlist_total }})</span>
+                                    {% endif %}
                                     {% if item.quality_label %}
                                         <span class="badge quality-badge">{{ item.quality_label }}</span>
                                     {% endif %}
@@ -846,8 +1021,11 @@
                     <div class="video-item" id="video-card-{{ video.id }}">
                         <div>
                             <div class="video-title-text">{{ video.title }}</div>
-                            {% if video.quality or video.subtitle_lang %}
+                            {% if video.quality or video.subtitle_lang or video.playlist_title %}
                                 <div class="video-badges">
+                                    {% if video.playlist_title %}
+                                        <span class="badge playlist-badge">📁 {{ video.playlist_title }}</span>
+                                    {% endif %}
                                     {% if video.quality %}
                                         <span class="badge quality-badge">
                                             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>
@@ -899,11 +1077,13 @@
         let currentUrl = '';
         let currentTitle = '';
         let currentThumbnail = '';
+        let currentIsPlaylist = false;
+        let currentPlaylistEntries = [];
         let hasActiveDownload = false;
         let lastKnownVideoId = '{{ videos[0].id if videos and videos|length > 0 else "" }}';
         let lastKnownCount = {{ videos|length if videos else 0 }};
 
-        // Helper: Format bytes identically to backend
+        // Helper: Format bytes
         function formatBytes(bytes) {
             if (!bytes || bytes === 0) return '0 B';
             const units = ['B', 'KB', 'MB', 'GB', 'TB'];
@@ -916,7 +1096,7 @@
             return `${size.toFixed(2)} ${units[unitIndex]}`;
         }
 
-        // Helper: Escape HTML to prevent injection
+        // Helper: Escape HTML
         function escapeHtml(str) {
             if (!str) return '';
             return String(str)
@@ -937,8 +1117,8 @@
             }, 3500);
         }
 
-        // Step 1: Fetch quality and subtitle formats
-        async function fetchQualities() {
+        // Step 1: Fetch quality and subtitle formats (supports both single videos and playlists)
+        async function fetchQualities(forceSingle = false) {
             const urlInput = document.getElementById('video-url');
             const fetchBtn = document.getElementById('fetch-btn');
             const alertBox = document.getElementById('error-alert');
@@ -958,7 +1138,7 @@
                 const response = await fetch('/get-formats', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ url: currentUrl })
+                    body: JSON.stringify({ url: currentUrl, single_video: forceSingle })
                 });
 
                 const data = await response.json();
@@ -966,10 +1146,59 @@
 
                 currentTitle = data.title || 'Video';
                 currentThumbnail = data.thumbnail || '';
+                currentIsPlaylist = Boolean(data.is_playlist);
+                currentPlaylistEntries = data.entries || [];
 
                 document.getElementById('thumb').src = currentThumbnail;
                 document.getElementById('video-title').innerText = currentTitle;
-                document.getElementById('video-duration').innerText = `Duration: ${data.duration || '--'}`;
+                document.getElementById('video-duration').innerText = data.duration ? `Duration: ${data.duration}` : '';
+
+                // Playlist UI adjustments
+                const plBanner = document.getElementById('playlist-banner');
+                const plNote = document.getElementById('playlist-note');
+                const plCountBadge = document.getElementById('playlist-video-count-badge');
+                const modeSelector = document.getElementById('playlist-mode-selector');
+                const plCollapse = document.getElementById('playlist-preview-collapse');
+                const plPreviewList = document.getElementById('playlist-preview-list');
+
+                if (currentIsPlaylist) {
+                    plBanner.style.display = 'flex';
+                    plNote.style.display = 'block';
+                    plCountBadge.innerText = `${data.video_count} videos`;
+
+                    if (data.has_single_video) {
+                        modeSelector.style.display = 'flex';
+                        document.getElementById('mode-playlist-label').innerText = `Download entire playlist (${data.video_count} videos)`;
+                        document.getElementById('mode-playlist').checked = true;
+                    } else {
+                        modeSelector.style.display = 'none';
+                    }
+
+                    // Populate playlist preview list
+                    if (currentPlaylistEntries.length > 0) {
+                        plCollapse.style.display = 'block';
+                        document.getElementById('playlist-preview-summary').innerText = `Preview all ${currentPlaylistEntries.length} videos in playlist`;
+                        
+                        let previewHtml = '';
+                        currentPlaylistEntries.forEach((item, idx) => {
+                            previewHtml += `
+                                <div class="playlist-preview-item">
+                                    <span class="playlist-preview-item-num">#${idx + 1}</span>
+                                    <span class="playlist-preview-item-title">${escapeHtml(item.title)}</span>
+                                    <span class="playlist-preview-item-dur">${escapeHtml(item.duration || '')}</span>
+                                </div>
+                            `;
+                        });
+                        plPreviewList.innerHTML = previewHtml;
+                    } else {
+                        plCollapse.style.display = 'none';
+                    }
+                } else {
+                    plBanner.style.display = 'none';
+                    plNote.style.display = 'none';
+                    modeSelector.style.display = 'none';
+                    plCollapse.style.display = 'none';
+                }
 
                 // Populate Formats
                 const qualitySelect = document.getElementById('quality-select');
@@ -1000,7 +1229,7 @@
                     subSelect.disabled = true;
                 }
 
-                // Update button text based on whether a download is currently running
+                // Update button text based on playlist & active download
                 updateDownloadButtonText();
 
                 document.getElementById('options-step').style.display = 'block';
@@ -1016,17 +1245,35 @@
             }
         }
 
-        function updateDownloadButtonText() {
-            const btnText = document.getElementById('download-btn-text');
-            if (!btnText) return;
-            if (hasActiveDownload) {
-                btnText.innerText = '+ Add to Queue';
+        function toggleDownloadMode(mode) {
+            if (mode === 'single') {
+                fetchQualities(true);
             } else {
-                btnText.innerText = 'Start Download';
+                fetchQualities(false);
             }
         }
 
-        // Step 2: Submit download to queue
+        function updateDownloadButtonText() {
+            const btnText = document.getElementById('download-btn-text');
+            if (!btnText) return;
+
+            if (currentIsPlaylist) {
+                const count = currentPlaylistEntries.length;
+                if (hasActiveDownload) {
+                    btnText.innerText = `+ Add Playlist (${count} videos) to Queue`;
+                } else {
+                    btnText.innerText = `Download Playlist (${count} videos)`;
+                }
+            } else {
+                if (hasActiveDownload) {
+                    btnText.innerText = '+ Add to Queue';
+                } else {
+                    btnText.innerText = 'Start Download';
+                }
+            }
+        }
+
+        // Step 2: Submit single video or playlist to queue
         async function startDownload() {
             const qualitySelect = document.getElementById('quality-select');
             const formatId = qualitySelect.value;
@@ -1040,35 +1287,45 @@
             downloadBtn.disabled = true;
 
             try {
+                const payload = {
+                    url: currentUrl,
+                    title: currentTitle,
+                    thumbnail: currentThumbnail,
+                    format_id: formatId,
+                    quality_label: qualityLabel,
+                    subtitle_code: subtitleCode,
+                    subtitle_label: subtitleLabel,
+                    is_playlist: currentIsPlaylist,
+                    entries: currentIsPlaylist ? currentPlaylistEntries : []
+                };
+
                 const response = await fetch('/start-download', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        url: currentUrl,
-                        title: currentTitle,
-                        thumbnail: currentThumbnail,
-                        format_id: formatId,
-                        quality_label: qualityLabel,
-                        subtitle_code: subtitleCode,
-                        subtitle_label: subtitleLabel
-                    })
+                    body: JSON.stringify(payload)
                 });
 
                 const data = await response.json();
                 if (!response.ok) throw new Error(data.error || 'Failed to submit download');
 
-                if (data.status === 'starting') {
-                    showToast(`Starting download: "${currentTitle}"`);
+                if (data.is_playlist) {
+                    showToast(`Queued playlist "${currentTitle}" (${data.added_count} videos)!`);
                 } else {
-                    showToast(`Added to queue (Position #${data.queue_position}): "${currentTitle}"`);
+                    if (data.status === 'starting') {
+                        showToast(`Starting download: "${currentTitle}"`);
+                    } else {
+                        showToast(`Added to queue (Position #${data.queue_position}): "${currentTitle}"`);
+                    }
                 }
 
-                // Reset options step and clear input for the next video
+                // Reset options step and clear input for next request
                 document.getElementById('options-step').style.display = 'none';
                 document.getElementById('video-url').value = '';
                 currentUrl = '';
                 currentTitle = '';
                 currentThumbnail = '';
+                currentIsPlaylist = false;
+                currentPlaylistEntries = [];
             } catch (err) {
                 alert(err.message || 'Failed to initiate download.');
             } finally {
@@ -1090,6 +1347,25 @@
                 }
             } catch (err) {
                 alert('Network error canceling queue item.');
+            }
+        }
+
+        // Clear entire waiting queue
+        async function clearQueue() {
+            if (!confirm('Are you sure you want to clear all waiting items from the download queue?')) return;
+
+            try {
+                const response = await fetch('/clear-queue', { method: 'POST' });
+                const data = await response.json();
+                if (response.ok && data.success) {
+                    showToast(`Cleared ${data.cleared_count} items from queue`);
+                    document.getElementById('queue-card').style.display = 'none';
+                    document.getElementById('queue-list').innerHTML = '';
+                } else {
+                    alert(data.error || 'Failed to clear queue');
+                }
+            } catch (err) {
+                alert('Network error clearing queue.');
             }
         }
 
@@ -1122,8 +1398,15 @@
             let html = '';
             videos.forEach(video => {
                 let badgesHtml = '';
-                if (video.quality || video.subtitle_lang) {
+                if (video.quality || video.subtitle_lang || video.playlist_title) {
                     badgesHtml = '<div class="video-badges">';
+                    if (video.playlist_title) {
+                        badgesHtml += `
+                            <span class="badge playlist-badge">
+                                📁 ${escapeHtml(video.playlist_title)}
+                            </span>
+                        `;
+                    }
                     if (video.quality) {
                         badgesHtml += `
                             <span class="badge quality-badge">
@@ -1227,6 +1510,15 @@
                             thumbImg.style.display = 'none';
                         }
 
+                        // Playlist tag
+                        const plTag = document.getElementById('active-playlist-tag');
+                        if (active.playlist_title) {
+                            plTag.innerText = `📁 ${active.playlist_title} (${active.playlist_index}/${active.playlist_total})`;
+                            plTag.style.display = 'inline-flex';
+                        } else {
+                            plTag.style.display = 'none';
+                        }
+
                         // Quality Tag
                         const qTag = document.getElementById('active-quality-tag');
                         if (active.quality_label) {
@@ -1287,6 +1579,9 @@
                             }
 
                             let badges = '';
+                            if (item.playlist_title) {
+                                badges += `<span class="badge playlist-badge">📁 ${escapeHtml(item.playlist_title)} (${item.playlist_index}/${item.playlist_total})</span>`;
+                            }
                             if (item.quality_label) {
                                 badges += `<span class="badge quality-badge">${escapeHtml(item.quality_label)}</span>`;
                             }
@@ -1325,7 +1620,7 @@
             };
 
             stream.onerror = () => {
-                // EventSource will automatically retry connecting
+                // EventSource auto retries
             };
         }
 
