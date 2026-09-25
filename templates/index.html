@@ -415,15 +415,15 @@
             font-size: 11px;
         }
 
-        /* Two-Column Options Grid */
+        /* Three-Column Options Grid */
         .options-grid {
             display: grid;
-            grid-template-columns: 1fr 1fr;
+            grid-template-columns: repeat(3, 1fr);
             gap: 16px;
             margin-bottom: 8px;
         }
 
-        @media (max-width: 600px) {
+        @media (max-width: 768px) {
             .options-grid {
                 grid-template-columns: 1fr;
             }
@@ -704,6 +704,13 @@
             border: 1px solid rgba(245, 158, 11, 0.3);
         }
 
+        .badge.format-badge {
+            background-color: rgba(168, 85, 247, 0.15);
+            color: #c084fc;
+            border: 1px solid rgba(168, 85, 247, 0.3);
+            text-transform: uppercase;
+        }
+
         .video-meta-tags {
             display: flex;
             gap: 12px;
@@ -900,7 +907,20 @@
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>
                         Video Quality
                     </label>
-                    <select id="quality-select"></select>
+                    <select id="quality-select" onchange="handleQualityChange()"></select>
+                </div>
+                <div class="field-container">
+                    <label class="field-label" for="video-format-select">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><polygon points="10 8 16 12 10 16 10 8"/></svg>
+                        Saved Video Format
+                    </label>
+                    <select id="video-format-select">
+                        <option value="mkv" selected>MKV (.mkv) [Default]</option>
+                        <option value="mp4">MP4 (.mp4)</option>
+                        <option value="webm">WebM (.webm)</option>
+                        <option value="mov">MOV (.mov)</option>
+                        <option value="avi">AVI (.avi)</option>
+                    </select>
                 </div>
                 <div class="field-container">
                     <label class="field-label" for="subtitle-select">
@@ -941,6 +961,9 @@
                         </span>
                         <span class="badge quality-badge" id="active-quality-tag" style="{% if not active or not active.quality_label %}display: none;{% endif %}">
                             {{ active.quality_label if active else '' }}
+                        </span>
+                        <span class="badge format-badge" id="active-format-tag" style="{% if not active or not active.video_format %}display: none;{% endif %}">
+                            {{ active.video_format|upper if active and active.video_format else '' }}
                         </span>
                         <span class="badge sub-badge" id="active-sub-tag" style="{% if not active or not active.subtitle_label %}display: none;{% endif %}">
                             CC: {{ active.subtitle_label if active else '' }}
@@ -991,6 +1014,9 @@
                                     {% if item.quality_label %}
                                         <span class="badge quality-badge">{{ item.quality_label }}</span>
                                     {% endif %}
+                                    {% if item.video_format %}
+                                        <span class="badge format-badge">{{ item.video_format|upper }}</span>
+                                    {% endif %}
                                     {% if item.subtitle_label %}
                                         <span class="badge sub-badge">CC: {{ item.subtitle_label }}</span>
                                     {% endif %}
@@ -1021,7 +1047,7 @@
                     <div class="video-item" id="video-card-{{ video.id }}">
                         <div>
                             <div class="video-title-text">{{ video.title }}</div>
-                            {% if video.quality or video.subtitle_lang or video.playlist_title %}
+                            {% if video.quality or video.subtitle_lang or video.playlist_title or video.format or video.filename %}
                                 <div class="video-badges">
                                     {% if video.playlist_title %}
                                         <span class="badge playlist-badge">📁 {{ video.playlist_title }}</span>
@@ -1031,6 +1057,10 @@
                                             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>
                                             {{ video.quality }}
                                         </span>
+                                    {% endif %}
+                                    {% set fmt = video.format if video.format else (video.filename.split('.')[-1]|upper if '.' in video.filename else '') %}
+                                    {% if fmt and fmt != 'AUDIO' %}
+                                        <span class="badge format-badge">{{ fmt }}</span>
                                     {% endif %}
                                     {% if video.subtitle_lang %}
                                         <span class="badge sub-badge">
@@ -1209,6 +1239,7 @@
                     opt.innerText = f.resolution;
                     qualitySelect.appendChild(opt);
                 });
+                handleQualityChange();
 
                 // Populate Subtitles
                 const subSelect = document.getElementById('subtitle-select');
@@ -1242,6 +1273,22 @@
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
                     Fetch Options
                 `;
+            }
+        }
+
+        function handleQualityChange() {
+            const qualitySelect = document.getElementById('quality-select');
+            const formatSelect = document.getElementById('video-format-select');
+            if (!qualitySelect || !formatSelect) return;
+            const val = qualitySelect.value || '';
+            const selectedText = qualitySelect.options[qualitySelect.selectedIndex] ? qualitySelect.options[qualitySelect.selectedIndex].text : '';
+            const isAudio = val === 'bestaudio/best' || val.startsWith('bestaudio') || selectedText.includes('Audio Only');
+            if (isAudio) {
+                formatSelect.disabled = true;
+                formatSelect.title = 'Audio-only downloads save in native audio format (M4A/MP3)';
+            } else {
+                formatSelect.disabled = false;
+                formatSelect.title = '';
             }
         }
 
@@ -1279,6 +1326,9 @@
             const formatId = qualitySelect.value;
             const qualityLabel = qualitySelect.options[qualitySelect.selectedIndex] ? qualitySelect.options[qualitySelect.selectedIndex].text : '';
 
+            const formatSelect = document.getElementById('video-format-select');
+            const videoFormat = (formatSelect && !formatSelect.disabled) ? (formatSelect.value || 'mkv') : 'mkv';
+
             const subSelect = document.getElementById('subtitle-select');
             const subtitleCode = subSelect.value;
             const subtitleLabel = subSelect.disabled || subtitleCode === 'none' ? null : (subSelect.options[subSelect.selectedIndex] ? subSelect.options[subSelect.selectedIndex].text : null);
@@ -1293,6 +1343,7 @@
                     thumbnail: currentThumbnail,
                     format_id: formatId,
                     quality_label: qualityLabel,
+                    video_format: videoFormat,
                     subtitle_code: subtitleCode,
                     subtitle_label: subtitleLabel,
                     is_playlist: currentIsPlaylist,
@@ -1326,6 +1377,11 @@
                 currentThumbnail = '';
                 currentIsPlaylist = false;
                 currentPlaylistEntries = [];
+                if (formatSelect) {
+                    formatSelect.value = 'mkv';
+                    formatSelect.disabled = false;
+                    formatSelect.title = '';
+                }
             } catch (err) {
                 alert(err.message || 'Failed to initiate download.');
             } finally {
@@ -1398,7 +1454,11 @@
             let html = '';
             videos.forEach(video => {
                 let badgesHtml = '';
-                if (video.quality || video.subtitle_lang || video.playlist_title) {
+                let fmt = video.format;
+                if (!fmt && video.filename && video.filename.includes('.')) {
+                    fmt = video.filename.split('.').pop().toUpperCase();
+                }
+                if (video.quality || video.subtitle_lang || video.playlist_title || fmt) {
                     badgesHtml = '<div class="video-badges">';
                     if (video.playlist_title) {
                         badgesHtml += `
@@ -1412,6 +1472,13 @@
                             <span class="badge quality-badge">
                                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>
                                 ${escapeHtml(video.quality)}
+                            </span>
+                        `;
+                    }
+                    if (fmt && fmt !== 'AUDIO') {
+                        badgesHtml += `
+                            <span class="badge format-badge">
+                                ${escapeHtml(fmt)}
                             </span>
                         `;
                     }
@@ -1528,6 +1595,17 @@
                             qTag.style.display = 'none';
                         }
 
+                        // Format Tag
+                        const fTag = document.getElementById('active-format-tag');
+                        if (fTag) {
+                            if (active.video_format) {
+                                fTag.innerText = active.video_format.toUpperCase();
+                                fTag.style.display = 'inline-flex';
+                            } else {
+                                fTag.style.display = 'none';
+                            }
+                        }
+
                         // Subtitle Tag
                         const sTag = document.getElementById('active-sub-tag');
                         if (active.subtitle_label) {
@@ -1584,6 +1662,9 @@
                             }
                             if (item.quality_label) {
                                 badges += `<span class="badge quality-badge">${escapeHtml(item.quality_label)}</span>`;
+                            }
+                            if (item.video_format) {
+                                badges += `<span class="badge format-badge">${escapeHtml(item.video_format.toUpperCase())}</span>`;
                             }
                             if (item.subtitle_label) {
                                 badges += `<span class="badge sub-badge">CC: ${escapeHtml(item.subtitle_label)}</span>`;

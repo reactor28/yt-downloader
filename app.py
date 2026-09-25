@@ -90,6 +90,9 @@ def run_download_task(task):
     task_id = task['task_id']
     url = task['url']
     format_id = task['format_id']
+    video_format = (task.get('video_format') or 'mkv').lower().strip()
+    if video_format not in ['mkv', 'mp4', 'webm', 'mov', 'avi']:
+        video_format = 'mkv'
     quality_label = task.get('quality_label', '')
     subtitle_code = task.get('subtitle_code', 'none')
     subtitle_label = task.get('subtitle_label')
@@ -140,23 +143,44 @@ def run_download_task(task):
     js_runtimes = {'node': {'path': '/usr/bin/node'},
                    'deno': {'path': '/home/bob/.deno/bin/deno'}}
 
-    # Configure format and format_sort for universal MP4 / H.264 compatibility
+    # Configure format, format_sort, and merge_output_format based on selected video_format (default: mkv)
     if format_id in ['bestaudio/best', 'audio'] or (format_id and format_id.startswith('bestaudio')):
         actual_format = 'bestaudio[ext=m4a]/bestaudio/best'
         format_sort = ['aext:m4a']
         merge_fmt = None
-    elif format_id and format_id.startswith('res:'):
-        actual_format = 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/bestvideo+bestaudio/best'
-        format_sort = [format_id, 'vcodec:avc', 'ext:mp4:m4a']
-        merge_fmt = 'mp4'
-    elif format_id in ['best', 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best'] or (format_id and 'bestvideo' in format_id):
-        actual_format = 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/bestvideo+bestaudio/best'
-        format_sort = ['res', 'vcodec:avc', 'ext:mp4:m4a']
-        merge_fmt = 'mp4'
     else:
-        actual_format = format_id
-        format_sort = ['vcodec:avc', 'ext:mp4:m4a']
-        merge_fmt = 'mp4'
+        merge_fmt = video_format
+        if video_format == 'webm':
+            if format_id and format_id.startswith('res:'):
+                actual_format = 'bestvideo[ext=webm]+bestaudio[ext=webm]/bestvideo+bestaudio/best'
+                format_sort = [format_id, 'vcodec:vp9', 'ext:webm']
+            elif format_id in ['best', 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best'] or (format_id and 'bestvideo' in format_id):
+                actual_format = 'bestvideo[ext=webm]+bestaudio[ext=webm]/bestvideo+bestaudio/best'
+                format_sort = ['res', 'vcodec:vp9', 'ext:webm']
+            else:
+                actual_format = format_id
+                format_sort = ['vcodec:vp9', 'ext:webm']
+        elif video_format == 'mp4':
+            if format_id and format_id.startswith('res:'):
+                actual_format = 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/bestvideo+bestaudio/best'
+                format_sort = [format_id, 'vcodec:avc', 'ext:mp4:m4a']
+            elif format_id in ['best', 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best'] or (format_id and 'bestvideo' in format_id):
+                actual_format = 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/bestvideo+bestaudio/best'
+                format_sort = ['res', 'vcodec:avc', 'ext:mp4:m4a']
+            else:
+                actual_format = format_id
+                format_sort = ['vcodec:avc', 'ext:mp4:m4a']
+        else:
+            # mkv (default), mov, avi
+            if format_id and format_id.startswith('res:'):
+                actual_format = 'bestvideo+bestaudio/best'
+                format_sort = [format_id, 'vcodec:avc', 'ext:mp4:m4a']
+            elif format_id in ['best', 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best'] or (format_id and 'bestvideo' in format_id):
+                actual_format = 'bestvideo+bestaudio/best'
+                format_sort = ['res', 'vcodec:avc', 'ext:mp4:m4a']
+            else:
+                actual_format = format_id
+                format_sort = ['vcodec:avc', 'ext:mp4:m4a']
 
     ydl_opts = {
         'format': actual_format,
@@ -192,6 +216,11 @@ def run_download_task(task):
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=True)
             full_path = ydl.prepare_filename(info)
+            if merge_fmt:
+                base_without_ext = os.path.splitext(full_path)[0]
+                merged_candidate = f"{base_without_ext}.{merge_fmt}"
+                if os.path.exists(merged_candidate):
+                    full_path = merged_candidate
             filename = os.path.basename(full_path)
             file_size = os.path.getsize(full_path) if os.path.exists(full_path) else 0
 
@@ -231,6 +260,7 @@ def run_download_task(task):
                     quality_tag = "Best Quality"
 
             sub_tag = subtitle_label if sub_filename else None
+            format_tag = video_format.upper() if format_id not in ['bestaudio/best', 'audio'] else 'AUDIO'
 
             videos = load_db()
             video_record = {
@@ -239,6 +269,7 @@ def run_download_task(task):
                 'filename': filename,
                 'subtitle_filename': sub_filename,
                 'quality': quality_tag,
+                'format': format_tag,
                 'subtitle_lang': sub_tag,
                 'playlist_title': playlist_title,
                 'file_size': file_size,
@@ -276,6 +307,7 @@ def queue_worker():
                     'thumbnail': task.get('thumbnail', ''),
                     'format_id': task['format_id'],
                     'quality_label': task.get('quality_label', ''),
+                    'video_format': task.get('video_format', 'mkv'),
                     'subtitle_code': task.get('subtitle_code', 'none'),
                     'subtitle_label': task.get('subtitle_label'),
                     'playlist_title': task.get('playlist_title'),
@@ -374,12 +406,12 @@ def get_formats():
                         })
 
                     playlist_formats = [
-                        {'format_id': 'best', 'resolution': 'Best Available Quality (MP4)'},
-                        {'format_id': 'res:1440', 'resolution': '1440p 2K or lower (MP4)'},
-                        {'format_id': 'res:1080', 'resolution': '1080p Full HD or lower (MP4)'},
-                        {'format_id': 'res:720', 'resolution': '720p HD or lower (MP4)'},
-                        {'format_id': 'res:480', 'resolution': '480p SD or lower (MP4)'},
-                        {'format_id': 'bestaudio/best', 'resolution': 'Audio Only (MP3/M4A)'}
+                        {'format_id': 'best', 'resolution': 'Best Available Quality'},
+                        {'format_id': 'res:1440', 'resolution': '1440p 2K or lower'},
+                        {'format_id': 'res:1080', 'resolution': '1080p Full HD or lower'},
+                        {'format_id': 'res:720', 'resolution': '720p HD or lower'},
+                        {'format_id': 'res:480', 'resolution': '480p SD or lower'},
+                        {'format_id': 'bestaudio/best', 'resolution': 'Audio Only (M4A/MP3)'}
                     ]
 
                     playlist_subtitles = [
@@ -443,16 +475,16 @@ def get_formats():
                     seen_heights.add(height)
                     formats.append({
                         'format_id': f"{format_id}+bestaudio/best",
-                        'resolution': f"{height}p ({ext})",
+                        'resolution': f"{height}p",
                         'height': height
                     })
             
             formats.sort(key=lambda x: x['height'], reverse=True)
             
             options = [
-                {'format_id': 'best', 'resolution': 'Best Available Quality (MP4)'},
+                {'format_id': 'best', 'resolution': 'Best Available Quality'},
             ] + formats + [
-                {'format_id': 'bestaudio/best', 'resolution': 'Audio Only (MP3/M4A)'}
+                {'format_id': 'bestaudio/best', 'resolution': 'Audio Only (M4A/MP3)'}
             ]
 
             # Parse subtitle options (manual and automatic)
@@ -503,6 +535,9 @@ def start_download():
     title = data.get('title', 'Video')
     thumbnail = data.get('thumbnail', '')
     quality_label = data.get('quality_label', '')
+    video_format = (data.get('video_format') or 'mkv').lower().strip()
+    if video_format not in ['mkv', 'mp4', 'webm', 'mov', 'avi']:
+        video_format = 'mkv'
     subtitle_code = data.get('subtitle_code', 'none')
     subtitle_label = data.get('subtitle_label')
     is_playlist = data.get('is_playlist', False)
@@ -562,6 +597,7 @@ def start_download():
                     'thumbnail': entry.get('thumbnail', ''),
                     'format_id': format_id,
                     'quality_label': quality_label,
+                    'video_format': video_format,
                     'subtitle_code': subtitle_code,
                     'subtitle_label': subtitle_label,
                     'playlist_title': title,
@@ -592,6 +628,7 @@ def start_download():
             'thumbnail': thumbnail,
             'format_id': format_id,
             'quality_label': quality_label,
+            'video_format': video_format,
             'subtitle_code': subtitle_code,
             'subtitle_label': subtitle_label,
             'added_at': datetime.now().isoformat()
